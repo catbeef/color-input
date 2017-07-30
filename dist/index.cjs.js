@@ -636,7 +636,7 @@ var template = Object.assign(document.createElement('template'), {
       }
     </style>
 
-    <div id="${ CONTAINER_ID }" tabindex="0">
+    <div id="${ CONTAINER_ID }">
       <div id="${ XY_ID }">
         <canvas id="${ XY_CANVAS_ID }" height="0" width="0"></canvas>
         <div id="${ XY_NUB_ID }"></div>
@@ -1110,13 +1110,14 @@ class ColorInputInternal {
     if (this.xDescending !== xDescending || this.yDescending !== yDescending) {
       this.xDescending = xDescending;
       this.yDescending = yDescending;
-      this._renderXY   = true;
     }
 
     if (this.zDescending !== zDescending) {
       this.zDescending = zDescending;
-      this._renderZ    = true;
     }
+
+    this._renderXY   = true;
+    this._renderZ    = true;
   }
 
   setGutterAndZWidthFromCSS(gutterChanged) {
@@ -1185,7 +1186,7 @@ class ColorInputInternal {
   }
 
   setXYNubPosition() {
-    const x = (this.xDescending ? 1 - this.effectiveY : this.effectiveX) * 100;
+    const x = (this.xDescending ? 1 - this.effectiveX : this.effectiveX) * 100;
     const y = (this.yDescending ? 1 - this.effectiveY : this.effectiveY) * 100;
 
     this.$xyNub.style.left = `${ x }%`;
