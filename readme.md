@@ -15,6 +15,7 @@ There is a [demo page](example.html) — but be aware this will currently only w
 
 - [Caveats](#caveats)
   - [About Web Components and Forms](#about-web-components-and-forms)
+  - [Performance](#performance)
 - [Usage](#usage)
   - [ES Module](#es-module)
   - [Common JS Module](#common-js-module)
@@ -90,6 +91,19 @@ element as "ideal" as possible; the helper element is, by necessity, a bit of a
 hack and cannot properly leverage the shadow DOM for encapsulation. In the
 future, when the API for declaring custom elements as form controls is defined
 and implemented, I’ll be able to remove this helper.
+
+### Performance
+
+Computing HCL and LAB colors is a lot more expensive than computing RGB, HSL and
+HSV. This only really matters when the user is dragging the z-slider, since that
+implies continuous redraws of the x/y plane (in contrast, redrawing the z-axis
+is always cheap, since we only need to calculate a single row of pixels). On a
+fairly good comp at default sizes, the input has no trouble rendering HCL and
+LAB at 60FPS (i.e., it takes less than 16ms), but at larger sizes, in high res
+mode, or on a less powerful machine, the xy plane framerate may drop.
+
+To address this in the future I might try to do a little WASMing — seems to fit
+the spirit of this "latest DOM tech" exploration project.
 
 ## Usage
 
