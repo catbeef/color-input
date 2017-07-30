@@ -7,9 +7,9 @@ A custom HTML element ("web component") like `<input type="color">` but with
 additional features, configurability and styling options, including support for
 HCL and other color space modes.
 
-![example in "hlc" mode](https://github.com/catbeef/color-input/blob/master/example-hlc.png)
+![example in "hlc" mode](example-hlc.png)
 
-There is a [demo page](./example.html) (have yet to make it a proper github page
+There is a [demo page](example.html) (have yet to make it a proper github page
 though).
 
 <!-- MarkdownTOC autolink=true bracket=round depth=3 -->
