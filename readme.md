@@ -9,8 +9,7 @@ HCL and other color space modes.
 
 ![example in "hlc" mode](example-hlc.png)
 
-There is a [demo page](example.html) (have yet to make it a proper github page
-though).
+There is a [demo page](example.html) — but be aware this will currently only work in Chrome (and maybe Safari and Opera, not sure).
 
 <!-- MarkdownTOC autolink=true bracket=round depth=3 -->
 
