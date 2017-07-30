@@ -1,7 +1,5 @@
-<aside class="warning">
-  alpha version — still working on introducing accessibility and form
-  behavior, etc
-</aside>
+>  _alpha version — still working on introducing accessibility and form_
+>  _behavior, etc_
 
 # \<color-input\>
 
@@ -9,7 +7,7 @@ A custom HTML element ("web component") like `<input type="color">` but with
 additional features, configurability and styling options, including support for
 HCL and other color space modes.
 
-![example in "hlc" mode](./example-hlc.png)
+![example in "hlc" mode](https://github.com/catbeef/color-input/blob/master/example-hlc.png)
 
 There is a [demo page](./example.html) (have yet to make it a proper github page
 though).
@@ -66,10 +64,8 @@ This project was mainly a way for me to familiarize myself with these upcoming
 technologies and to find out what their limitations are, so I don’t intend to
 adapt this to Polymer or whatever, though feel free to fork it.
 
-<aside class="warning">
-  *tl;dr:* for a regular website that needs to support older browsers you
-  probably cannot use this until c. 2039 AD
-</aside>
+> *tl;dr:* for a regular website that needs to support older browsers you
+> probably cannot use this until c. 2039 AD
 
 ### About Web Components and Forms
 
