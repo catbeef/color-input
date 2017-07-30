@@ -1,0 +1,447 @@
+<!DOCTYPE html>
+
+<script src="./dist/index.iife.js"></script>
+
+<link
+  href="https://fonts.googleapis.com/css?family=Concert+One"
+  rel="stylesheet">
+
+<style>
+  html, body {
+    background-color: #555;
+    font-family: 'Concert One', sans-serif;
+    height: 100%;
+    margin: 0;
+    width:  100%;
+  }
+
+  code {
+    color: #FA0;
+    font-family: inherit;
+  }
+
+  h1 {
+    background-color: #444;
+    box-shadow: 0 1px 5px rgba(0, 0, 0, 0.8);
+    color: #FD0;
+    display: flex;
+    justify-content: space-between;
+    margin: 0;
+    padding: 0.5em;
+    z-index: 1;
+  }
+
+  h2 {
+    background-color: #444;
+    color: #FD0;
+    letter-spacing: 0.05em;
+    padding: 0.5ex 1ex;
+  }
+
+  label {
+    display: flex;
+    margin-bottom: 1em;
+    justify-content: space-between;
+  }
+
+  main {
+    display: flex;
+    flex-direction: column;
+    min-height: 100%;
+  }
+
+  select {
+    align-self: flex-end;
+  }
+
+  .columns {
+    column-count: 2;
+  }
+
+  .demo {
+    display: flex;
+    flex: 1;
+    min-height: 100%;
+  }
+
+  .demo-example {
+    align-items: center;
+    background-image: linear-gradient(
+      to bottom right,
+      #5C5C5C 0%,
+      #5C5C5C 25%,
+      #626262 25%,
+      #626262 50%,
+      #5C5C5C 50%,
+      #5C5C5C 75%,
+      #626262 75%
+    );
+    background-size: 7.5em 7.5em;
+    display: flex;
+    flex: 1;
+    justify-content: center;
+  }
+
+  .demo-meta {
+    align-items: center;
+    flex: 2;
+    padding: 1em 2em;
+  }
+
+  #SELECTION {
+    display: flex;
+  }
+
+  #SELECTION_SWATCH {
+    height: 100%;
+    margin-left: 1ex;
+    width: 40px;
+  }
+</style>
+
+<main>
+  <h1>
+    <div>DEMO: &lt;color-input&gt;</div>
+    <div id="SELECTION">
+      <div id="SELECTION_HEX"></div>
+      <div id="SELECTION_SWATCH"></div>
+    </div>
+  </h1>
+
+  <div class="demo">
+    <div class="demo-example">
+      <color-input id="COLOR_INPUT" value="goldenrod">
+      </color-input>
+    </div>
+
+    <div class="demo-meta">
+      <p>
+        This is a “web component,” which mostly just means it’s a custom HTML
+        element as opposed to a vendor HTML element. It doesn’t use any
+        frameworks or polyfills, so right now it’s only suitable for use when
+        doing something like an Electron app.
+      </p>
+      <p>
+        It can be styled and configued through CSS props and HTML attributes
+        (and also ES, naturally). Note that, as yet, there isn’t a clean way to
+        make custom elements behave as form elements. There’s a hacky helper for
+        this included as a stop-gap.
+      </p>
+
+      <h2>ATTRIBUTES</h2>
+
+      <p>
+        The most important attribute is <code>mode</code>, which both sets the
+        color system and determines which axis is which. So for example "hcl"
+        is hue-chroma-luminance, while "hlc" is too but sets hue to the x axis,
+        luminance to the y axis, and chroma to the z-axis.
+      </p>
+
+      <div class="columns">
+        <label>
+          <code>mode</code>
+
+          <select id="INPUT_MODE">
+            <optgroup label="HCL (hue, chroma, luminance)">
+              <option value="chl">chl</option>
+              <option value="clh">clh</option>
+              <option value="hcl">hcl</option>
+              <option value="hlc" selected>hlc [default]</option>
+              <option value="lch">lch</option>
+              <option value="lhc">lhc</option>
+            </optgroup>
+
+            <optgroup label="HSL (hue, saturation, luminosity)">
+              <option value="hls">hls</option>
+              <option value="hsl">hsl</option>
+              <option value="lhs">lhs</option>
+              <option value="lsh">lsh</option>
+              <option value="shl">shl</option>
+              <option value="slh">slh</option>
+            </optgroup>
+
+            <optgroup label="HSV (hue, saturation, value)">
+              <option value="hsv">hsv</option>
+              <option value="hvs">hvs</option>
+              <option value="shv">shv</option>
+              <option value="svh">svh</option>
+              <option value="vhs">vhs</option>
+              <option value="vsh">vsh</option>
+            </optgroup>
+
+            <optgroup label="LAB (lightness, green-red axis, blue-yellow axis)">
+              <option value="abl">abl</option>
+              <option value="alb">alb</option>
+              <option value="bal">bal</option>
+              <option value="bla">bla</option>
+              <option value="lab">lab</option>
+              <option value="lba">lba</option>
+            </optgroup>
+
+            <optgroup label="RGB (red, green, blue)">
+              <option value="bgr">bgr</option>
+              <option value="brg">brg</option>
+              <option value="gbr">gbr</option>
+              <option value="grb">grb</option>
+              <option value="rbg">rbg</option>
+              <option value="rgb">rgb</option>
+            </optgroup>
+          </select>
+        </label>
+      </div>
+
+      <h2>CSS</h2>
+
+      <p>
+        The element uses the shadow DOM, which provides encapsulation of the
+        interior elements, both from the ES layer (to some extent) and from
+        global CSS. But we do want to expose some things for styling. The
+        vendor DOM uses pseudo elements for this, and there’s no equivalent for
+        custom elements yet. However custom CSS properties are sometimes (as
+        here) able to fulfill that role reasonably well — and also permit the
+        creation of more nuanced and expressive CSS rules with unique semantics.
+      </p>
+
+      <div class="columns">
+        <label>
+          <code>--color-input-gutter-width</code>
+          <select id="INPUT_GUTTER_WIDTH">
+            <option value="10px" selected>10px [default]</option>
+            <option value="20px">20px</option>
+            <option value="1em">1em</option>
+            <option value="5%">5%</option>
+            <option value="0">0</option>
+          </select>
+        </label>
+
+        <label>
+          <code>--color-input-high-res</code>
+          <select id="INPUT_HIGH_RES">
+            <option value="auto">auto [based on pixel density]</option>
+            <option value="true">true</option>
+            <option value="false" selected>false [default]</option>
+          </select>
+        </label>
+
+        <label>
+          <code>--color-input-x-axis-direction</code>
+          <select id="INPUT_X_DIR">
+            <option value="ascending" selected>ascending</option>
+            <option value="descending">descending</option>
+          </select>
+        </label>
+
+        <label>
+          <code>--color-input-y-axis-direction</code>
+          <select id="INPUT_Y_DIR">
+            <option value="ascending" selected>ascending</option>
+            <option value="descending">descending</option>
+          </select>
+        </label>
+
+        <label>
+          <code>--color-input-z-axis-direction</code>
+          <select id="INPUT_Z_DIR">
+            <option value="ascending" selected>ascending</option>
+            <option value="descending">descending</option>
+          </select>
+        </label>
+
+        <label>
+          <code>--color-input-z-axis-position</code>
+          <select id="INPUT_Z_POSITION">
+            <option value="start">start [affected by text dir]</option>
+            <option value="end" selected>end [default — affected by text dir]</option>
+            <option value="left">left</option>
+            <option value="right">right</option>
+            <option value="top">top</option>
+            <option value="bottom">bottom</option>
+          </select>
+        </label>
+
+        <label>
+          <code>--color-input-z-axis-width</code>
+          <select id="INPUT_Z_WIDTH">
+            <option value="20px">20px</option>
+            <option value="35px" selected>35px [default]</option>
+            <option value="50px">50px</option>
+            <option value="15%">15%</option>
+            <option value="50%">50%</option>
+          </select>
+        </label>
+
+        <label>
+          <code>height</code>
+          <select id="INPUT_HEIGHT">
+            <option value="100px">100px</option>
+            <option value="200px" selected>200px [default]</option>
+            <option value="300px">300px</option>
+            <option value="100%">100%</option>
+          </select>
+        </label>
+
+        <label>
+          <code>width</code>
+          <select id="INPUT_WIDTH">
+            <option value="100px">100px</option>
+            <option value="240px" selected>240px [default]</option>
+            <option value="350px">300px</option>
+            <option value="100%">100%</option>
+          </select>
+        </label>
+
+        <label>
+          <code>--color-input-xy-border</code>
+          <select id="INPUT_XY_BORDER">
+            <option value="none" selected>none [default]</option>
+            <option value="1px solid black">1px solid black</option>
+            <option value="2px dashed white">2px dashed white</option>
+          </select>
+        </label>
+
+        <label>
+          <code>--color-input-xy-border-radius</code>
+          <select id="INPUT_XY_RADIUS">
+            <option value="0" selected>0 [default]</option>
+            <option value="3px">3px</option>
+            <option value="5px">5px</option>
+            <option value="1em">1em</option>
+          </select>
+        </label>
+
+        <label>
+          <code>--color-input-z-border</code>
+          <select id="INPUT_Z_BORDER">
+            <option value="none" selected>none [default]</option>
+            <option value="1px solid black">1px solid black</option>
+            <option value="2px dashed white">2px dashed white</option>
+          </select>
+        </label>
+
+        <label>
+          <code>--color-input-z-border-radius</code>
+          <select id="INPUT_Z_RADIUS">
+            <option value="0" selected>0 [default]</option>
+            <option value="3px">3px</option>
+            <option value="5px">5px</option>
+            <option value="1em">1em</option>
+          </select>
+        </label>
+      </div>
+
+    </div>
+  </div>
+</main>
+
+<script>
+  'use strict';
+
+  {
+    const $colorInput    = document.getElementById('COLOR_INPUT');
+    const $gutterInput   = document.getElementById('INPUT_GUTTER_WIDTH');
+    const $heightInput   = document.getElementById('INPUT_HEIGHT');
+    const $highResInput  = document.getElementById('INPUT_HIGH_RES');
+    const $modeInput     = document.getElementById('INPUT_MODE');
+    const $selectionHex  = document.getElementById('SELECTION_HEX');
+    const $swatch        = document.getElementById('SELECTION_SWATCH');
+    const $widthInput    = document.getElementById('INPUT_WIDTH');
+    const $xDirInput     = document.getElementById('INPUT_X_DIR');
+    const $xyBorderInput = document.getElementById('INPUT_XY_BORDER');
+    const $xyRadiusInput = document.getElementById('INPUT_XY_RADIUS');
+    const $yDirInput     = document.getElementById('INPUT_Y_DIR');
+    const $zAxisPosInput = document.getElementById('INPUT_Z_POSITION');
+    const $zBorderInput  = document.getElementById('INPUT_Z_BORDER');
+    const $zDirInput     = document.getElementById('INPUT_Z_DIR');
+    const $zRadiusInput  = document.getElementById('INPUT_Z_RADIUS');
+    const $zWidthInput   = document.getElementById('INPUT_Z_WIDTH');
+
+    const setSwatch = () => {
+      $selectionHex.innerText =
+        $selectionHex.style.color =
+        $swatch.style.backgroundColor =
+        $colorInput.value;
+    };
+
+    $colorInput.addEventListener('change', setSwatch);
+
+    $gutterInput.addEventListener('change', () =>
+      $colorInput
+        .style
+        .setProperty('--color-input-gutter-width', $gutterInput.value)
+    );
+
+    $heightInput.addEventListener('change', () =>
+      $colorInput.style.height = $heightInput.value
+    );
+
+    $highResInput.addEventListener('change', () =>
+      $colorInput
+        .style
+        .setProperty('--color-input-high-res', $highResInput.value)
+    );
+
+    $modeInput.addEventListener('change', () =>
+      $colorInput.setAttribute('mode', $modeInput.value)
+    );
+
+    $widthInput.addEventListener('change', () =>
+      $colorInput.style.width = $widthInput.value
+    );
+
+    $xDirInput.addEventListener('change', () =>
+      $colorInput
+        .style
+        .setProperty('--color-input-x-axis-direction', $xDirInput.value)
+    );
+
+    $xyBorderInput.addEventListener('change', () =>
+      $colorInput
+        .style
+        .setProperty('--color-input-xy-border', $xyBorderInput.value)
+    );
+
+    $xyRadiusInput.addEventListener('change', () =>
+      $colorInput
+        .style
+        .setProperty('--color-input-xy-border-radius', $xyRadiusInput.value)
+    );
+
+    $yDirInput.addEventListener('change', () =>
+      $colorInput
+        .style
+        .setProperty('--color-input-y-axis-direction', $yDirInput.value)
+    );
+
+    $zAxisPosInput.addEventListener('change', () =>
+      $colorInput
+        .style
+        .setProperty('--color-input-z-axis-position', $zAxisPosInput.value)
+    );
+
+    $zBorderInput.addEventListener('change', () =>
+      $colorInput
+        .style
+        .setProperty('--color-input-z-border', $zBorderInput.value)
+    );
+
+    $zDirInput.addEventListener('change', () =>
+      $colorInput
+        .style
+        .setProperty('--color-input-z-axis-direction', $zDirInput.value)
+    );
+
+    $zRadiusInput.addEventListener('change', () =>
+      $colorInput
+        .style
+        .setProperty('--color-input-z-border-radius', $zRadiusInput.value)
+    );
+
+    $zWidthInput.addEventListener('change', () =>
+      $colorInput
+        .style
+        .setProperty('--color-input-z-axis-width', $zWidthInput.value)
+    );
+
+    setSwatch();
+  }
+</script>
