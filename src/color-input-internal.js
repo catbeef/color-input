@@ -533,13 +533,8 @@ class ColorInputInternal {
       this.mode.fromRGB(...rgb);
 
     if (!this._dragging) {
-      if (this.zAxisValue !== z) {
-        this._renderXY = true;
-      }
-
-      if (this.xAxisValue !== x || this.yAxisValue !== y) {
-        this._renderZ = true;
-      }
+      this._renderXY = true;
+      this._renderZ = true;
     }
   }
 
