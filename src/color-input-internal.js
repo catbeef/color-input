@@ -666,8 +666,6 @@ class ColorInputInternal {
   }
 
   setSelectionFromRGB(rgb) {
-    const { xAxisValue: x, yAxisValue: y, zAxisValue: z } = this;
-
     [ this.xAxisValue, this.yAxisValue, this.zAxisValue ] =
       this.mode.fromRGB(...rgb);
 
