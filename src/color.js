@@ -326,21 +326,22 @@ const rgbToRGB = (...rgb) => rgb.map(n => n / MAX_BYTE);
 // PERMUTATIONS ////////////////////////////////////////////////////////////////
 
 const pairs = [
-  [ 'hcl', hcl, rgbToHCL ],
-  [ 'hsl', hsl, rgbToHSL ],
-  [ 'hsv', hsv, rgbToHSV ],
-  [ 'lab', lab, rgbToLAB ],
-  [ 'rgb', rgb, rgbToRGB ]
+  [ 'hcl', hcl, rgbToHCL, 'hue', 'chroma', 'luminance' ],
+  [ 'hsl', hsl, rgbToHSL, 'hue', 'saturation', 'luminosity' ],
+  [ 'hsv', hsv, rgbToHSV, 'hue', 'saturation', 'value' ],
+  [ 'lab', lab, rgbToLAB, 'lightness', 'red to green', 'blue to yellow' ],
+  [ 'rgb', rgb, rgbToRGB, 'red', 'green', 'blue' ]
 ];
 
-export default pairs.reduce((acc, [ name, write, fromRGB ]) => {
+export default pairs.reduce((acc, [ name, write, fromRGB, lX, lY, lZ ]) => {
   const [ x, y, z ] = name;
 
-  acc[name] = { name, write, fromRGB };
+  acc[name] = { labels: [ lX, lY, lZ ], name, write, fromRGB };
 
   name = [ x, z, y ].join('');
   acc[name] = {
     name,
+    labels: [ lX, lZ, lY ],
     write: (b, i, X, Y, Z) => write(b, i, X, Z, Y),
     fromRGB: (r, g, b) => {
       const [ x, y, z ] = fromRGB(r, g, b);
@@ -351,6 +352,7 @@ export default pairs.reduce((acc, [ name, write, fromRGB ]) => {
   name = [ y, x, z ].join('');
   acc[name] = {
     name,
+    labels: [ lY, lX, lZ ],
     write: (b, i, X, Y, Z) => write(b, i, Y, X, Z),
     fromRGB: (r, g, b) => {
       const [ x, y, z ] = fromRGB(r, g, b);
@@ -361,6 +363,7 @@ export default pairs.reduce((acc, [ name, write, fromRGB ]) => {
   name = [ y, z, x ].join('');
   acc[name] = {
     name,
+    labels: [ lY, lZ, lX ],
     write: (b, i, X, Y, Z) => write(b, i, Z, X, Y),
     fromRGB: (r, g, b) => {
       const [ x, y, z ] = fromRGB(r, g, b);
@@ -371,6 +374,7 @@ export default pairs.reduce((acc, [ name, write, fromRGB ]) => {
   name = [ z, x, y ].join('');
   acc[name] = {
     name,
+    labels: [ lZ, lX, lY ],
     write: (b, i, X, Y, Z) => write(b, i, Y, Z, X),
     fromRGB: (r, g, b) => {
       const [ x, y, z ] = fromRGB(r, g, b);
@@ -381,6 +385,7 @@ export default pairs.reduce((acc, [ name, write, fromRGB ]) => {
   name = [ z, y, x ].join('');
   acc[name] = {
     name,
+    labels: [ lZ, lY, lX ],
     write: (b, i, X, Y, Z) => write(b, i, Z, Y, X),
     fromRGB: (r, g, b) => {
       const [ x, y, z ] = fromRGB(r, g, b);

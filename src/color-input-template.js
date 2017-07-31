@@ -53,6 +53,7 @@ export default Object.assign(document.createElement('template'), {
         display          : flex;
         height           : 100%;
         left             : 0;
+        outline-offset   : -5px; /* will be truncated otherwise */
         overflow         : hidden;
         padding          : var(
           --color-input-slider-radius, ${ DEFAULT_SLIDER_RADIUS }
@@ -71,6 +72,7 @@ export default Object.assign(document.createElement('template'), {
       #${ Z_CANVAS_ID } {
         cursor           : pointer;
         height           : 100%;
+        transform        : translateZ(0); /* prevents horrible repaint bugs */
         width            : 100%;
       }
 
@@ -147,16 +149,29 @@ export default Object.assign(document.createElement('template'), {
       }
     </style>
 
-    <div id="${ CONTAINER_ID }">
+    <div
+      id="${ CONTAINER_ID }"
+      tabindex="0">
+
       <div id="${ XY_ID }">
-        <canvas id="${ XY_CANVAS_ID }" height="0" width="0"></canvas>
+        <canvas
+          height="0"
+          id="${ XY_CANVAS_ID }"
+          tabindex="0"
+          width="0">
+        </canvas>
         <div id="${ XY_NUB_ID }"></div>
       </div>
 
       <div id="${ GUTTER_ID }"></div>
 
       <div id="${ Z_ID }">
-        <canvas id="${ Z_CANVAS_ID }" height="0" width="0"></canvas>
+        <canvas
+          height="0"
+          id="${ Z_CANVAS_ID }"
+          tabindex="0"
+          width="0">
+        </canvas>
         <div id="${ Z_NUB_ID }"></div>
       </div>
     </div>

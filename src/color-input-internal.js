@@ -10,6 +10,10 @@ import template, {
   INITIAL_NUB_MOVEMENT_DURATION
 } from './color-input-template';
 
+const ARROW_KEYS = new Set([
+  'ArrowDown', 'ArrowLeft', 'ArrowRight', 'ArrowUp'
+]);
+
 const DIRECTION_PROP    = 'direction';
 const GUTTER_WIDTH_PROP = '--color-input-gutter-width';
 const HIGH_RES_PROP     = '--color-input-high-res';
@@ -167,6 +171,8 @@ class ColorInputInternal {
     // BOOTSTRAPPING ///////////////////////////////////////////////////////////
 
     shadow.append(tree);
+
+    this.setLabels();
   }
 
   get effectiveX() {
@@ -218,7 +224,7 @@ class ColorInputInternal {
   }
 
   listen() {
-    let xyTimeout, zTimeout;
+    let _terminateDrag, xyTimeout, zTimeout;
 
     const xyMouseDown = event => {
       clearTimeout(xyTimeout);
@@ -244,6 +250,8 @@ class ColorInputInternal {
         this._renderZ    = true;
         this._transientX = undefined;
         this._transientY = undefined;
+
+        _terminateDrag = undefined;
       };
 
       const mousemove = ({ clientX, clientY }) => {
@@ -280,15 +288,23 @@ class ColorInputInternal {
       document.addEventListener('mousemove', mousemove);
       document.addEventListener('mouseup', mouseup);
 
+      _terminateDrag = terminateDrag;
+
       this._deregs.add(terminateDrag);
     };
 
-    const xyNubMouseDown = ({ clientX, clientY }) => {
+    const xyNubMouseDown = event => {
+      const { clientX, clientY } = event;
+
       const { bottom, left, right, top } =
         this.$xyCanvas.getBoundingClientRect();
 
       const offsetX = Math.min(Math.max(left, clientX), right) - left;
       const offsetY = Math.min(Math.max(top, clientY), bottom) - top;
+
+      this.$xyCanvas.focus();
+
+      event.preventDefault();
 
       xyMouseDown({ offsetX, offsetY });
     };
@@ -316,6 +332,8 @@ class ColorInputInternal {
         this._dragging   = false;
         this._renderXY   = true;
         this._transientZ = undefined;
+
+        _terminateDrag = undefined;
       };
 
       const mousemove = ({ clientX, clientY }) => {
@@ -351,29 +369,120 @@ class ColorInputInternal {
       document.addEventListener('mousemove', mousemove);
       document.addEventListener('mouseup', mouseup);
 
+      _terminateDrag = terminateDrag;
+
       this._deregs.add(terminateDrag);
     };
 
-    const zNubMouseDown = ({ clientX, clientY }) => {
+    const zNubMouseDown = event => {
+      const { clientX, clientY } = event;
+
       const { bottom, left, right, top } =
         this.$zCanvas.getBoundingClientRect();
 
       const offsetX = Math.min(Math.max(left, clientX), right) - left;
       const offsetY = Math.min(Math.max(top, clientY), bottom) - top;
 
+      this.$zCanvas.focus();
+
+      event.preventDefault();
+
       zMouseDown({ offsetX, offsetY });
     };
 
+    const containerKey = event => {
+      if (event.defaultPrevented) return;
+
+      if (this._dragging && event.key === 'Escape') {
+        if (_terminateDrag) _terminateDrag();
+        event.preventDefault();
+      }
+    };
+
+    const xyKey = event => {
+      if (!ARROW_KEYS.has(event.key) || this._dragging) return;
+
+      const [ increaseXKey, decreaseXKey ] = this.xDescending
+        ? [ 'ArrowLeft', 'ArrowRight' ]
+        : [ 'ArrowRight', 'ArrowLeft' ];
+
+      const [ increaseYKey, decreaseYKey ] = this.yDescending
+        ? [ 'ArrowDown', 'ArrowUp' ]
+        : [ 'ArrowUp', 'ArrowDown' ];
+
+      const increment = event.shiftKey ? 0.1 : 0.01;
+
+      switch (event.key) {
+        case increaseXKey:
+          this.xAxisValue = Math.min(1, this.xAxisValue + increment);
+          this._renderZ = true;
+          this.signalChange();
+          break;
+        case decreaseXKey:
+          this.xAxisValue = Math.max(0, this.xAxisValue - increment);
+          this._renderZ = true;
+          this.signalChange();
+          break;
+        case increaseYKey:
+          this.yAxisValue = Math.min(1, this.yAxisValue + increment);
+          this._renderZ = true;
+          this.signalChange();
+          break;
+        case decreaseYKey:
+          this.yAxisValue = Math.max(0, this.yAxisValue - increment);
+          this._renderZ = true;
+          this.signalChange();
+          break;
+      }
+
+      event.preventDefault();
+    };
+
+    const zKey = event => {
+      if (!ARROW_KEYS.has(event.key) || this._dragging) return;
+
+      const keys = this.horizontal
+        ? [ 'ArrowUp', 'ArrowDown' ]
+        : [ 'ArrowRight', 'ArrowLeft' ];
+
+      if (this.zDescending) keys.reverse();
+
+      const [ increaseKey, decreaseKey ] = keys;
+
+      const increment = event.shiftKey ? 0.1 : 0.01;
+
+      switch (event.key) {
+        case increaseKey:
+          this.zAxisValue = Math.min(1, this.zAxisValue + increment);
+          this._renderXY = true;
+          this.signalChange();
+          break;
+        case decreaseKey:
+          this.zAxisValue = Math.max(0, this.zAxisValue - increment);
+          this._renderXY = true;
+          this.signalChange();
+          break;
+      }
+
+      event.preventDefault();
+    };
+
+    this.$container.addEventListener('keydown', containerKey);
     this.$xyCanvas.addEventListener('mousedown', xyMouseDown);
+    this.$xyCanvas.addEventListener('keydown', xyKey);
     this.$xyNub.addEventListener('mousedown', xyNubMouseDown);
     this.$zCanvas.addEventListener('mousedown', zMouseDown);
+    this.$zCanvas.addEventListener('keydown', zKey);
     this.$zNub.addEventListener('mousedown', zNubMouseDown);
 
     this._deregs
       .add(() => this.$xyCanvas.removeEventListener('mousedown', xyMouseDown))
+      .add(() => this.$xyCanvas.removeEventListener('keydown', xyKey))
       .add(() => this.$xyNub.removeEventListener('mousedown', xyNubMouseDown))
       .add(() => this.$zCanvas.removeEventListener('mousedown', zMouseDown))
-      .add(() => this.$zNub.removeEventListener('mousedown', zNubMouseDown));
+      .add(() => this.$zCanvas.removeEventListener('keydown', zKey))
+      .add(() => this.$zNub.removeEventListener('mousedown', zNubMouseDown))
+      .add(() => this.$container.removeEventListener('keydown', containerKey));
   }
 
   render() {
@@ -398,7 +507,7 @@ class ColorInputInternal {
   }
 
   renderXY() {
-    console.time('renderXY');
+    //console.time('renderXY');
     const { xDescending, yDescending, effectiveZ: z } = this;
     const { data, height, width } = this.xyImage;
     const { write } = this.mode;
@@ -421,11 +530,11 @@ class ColorInputInternal {
     }
 
     this.xyContext.putImageData(this.xyImage, 0, 0);
-    console.timeEnd('renderXY');
+    //console.timeEnd('renderXY');
   }
 
   renderZ() {
-    console.time('renderZ');
+    //console.time('renderZ');
     const { effectiveX: x, effectiveY: y, mode: { write } } = this;
     const { data } = this.zImage;
     const { length } = data;
@@ -439,7 +548,7 @@ class ColorInputInternal {
     }
 
     this.zContext.putImageData(this.zImage, 0, 0);
-    console.timeEnd('renderZ');
+    //console.timeEnd('renderZ');
   }
 
   selectionAsRGB() {
@@ -476,6 +585,8 @@ class ColorInputInternal {
 
     this._renderXY   = true;
     this._renderZ    = true;
+
+    this.setLabels();
   }
 
   setGutterAndZWidthFromCSS(gutterChanged) {
@@ -487,6 +598,34 @@ class ColorInputInternal {
     }
 
     this.$z.style.flexBasis = `calc(${ zWidth } - (${ gutterWidth } / 2))`;
+  }
+
+  setLabels() {
+    // let [ labelX, labelY, labelZ ] = this.mode.labels;
+
+    // // TODO: Figure out how to internationalize this and make it more
+    // // informative.
+
+    // const xDir = this.xDescending ? 'right' : 'left';
+    // const yDir = this.yDescending ? 'top' : 'bottom';
+
+    // const zDir = this.zDescending ?
+    //   this.horizontal ? 'top' : 'right' :
+    //   this.horizontal ? 'bottom' : 'left';
+
+    // const labelXY = `
+    //   ${ labelX } (left & right arrows, increasing from the ${ xDir });
+    //   ${ labelY } (up & down arrows, increasing from the ${ yDir })
+    // `;
+
+    // labelZ = `
+    //   ${ labelZ }
+    //   (${ this.horizontal ? 'up & down arrows' : 'left & right arrows' },
+    //   increasing from the ${ zDir })
+    // `;
+
+    // this.$xyCanvas.setAttribute('aria-label', labelXY);
+    // this.$zCanvas.setAttribute('aria-label', labelZ);
   }
 
   setOrientationFromCSS(orientationChanged, directionChanged) {
