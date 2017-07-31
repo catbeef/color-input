@@ -41,7 +41,7 @@ const CSS_PROPERTIES = [
 
 const LUMINANCE_OFFSET     = 4 / 7;
 const LUMINANCE_THRESHOLD  = 2 / 3;
-const SELECTION_GRACE_ZONE = 15;
+const SELECTION_GRACE_ZONE = 20;
 
 const Z_AXIS_POSITIONS = new Set([
   'bottom', 'end', 'left', 'right', 'start', 'top'
@@ -635,6 +635,7 @@ class ColorInputInternal {
       const horizontal = val !== 'top' && val !== 'bottom';
 
       if (horizontal !== this.horizontal) {
+        this.$zNub.classList[horizontal ? 'remove' : 'add']('vertical');
         this.horizontal = horizontal;
         this._renderZ   = true;
       }
@@ -728,11 +729,11 @@ class ColorInputInternal {
     const z = (this.zDescending ? 1 - this.effectiveZ : this.effectiveZ) * 100;
 
     if (this.horizontal) {
-      this.$zNub.style.left   = '';
+      this.$zNub.style.left   = 'inherit';
       this.$zNub.style.bottom = `${ z }%`;
     } else {
       this.$zNub.style.left   = `${ z }%`;
-      this.$zNub.style.bottom = '';
+      this.$zNub.style.bottom = 'inherit';
     }
   }
 
@@ -795,8 +796,11 @@ class ColorInputInternal {
       xyHeight *= 2, xyWidth *= 2, zHeight *= 2, zWidth *= 2;
     }
 
-    xyHeight = xyHeight || 1, xyWidth = xyWidth || 1;
-    zHeight = zHeight || 1, zWidth = zWidth || 1;
+    xyHeight = xyHeight || 1;
+    xyWidth  = xyWidth || 1;
+
+    zHeight = this.horizontal ? zHeight || 1 : 1;
+    zWidth  = this.horizontal ? 1 : zWidth || 1;
 
     if (this.xyImage.width !== xyWidth || this.xyImage.height !== xyHeight) {
       this._renderXY = true;
@@ -811,7 +815,7 @@ class ColorInputInternal {
     if (this.zImage.width !== zWidth || this.zImage.height !== zHeight) {
       this._renderZ = true;
 
-      this.$zCanvas.width = zWidth;
+      this.$zCanvas.width  = zWidth;
       this.$zCanvas.height = zHeight;
 
       this.zImage = this.zContext.createImageData(zWidth, zHeight);

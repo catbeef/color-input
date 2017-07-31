@@ -569,11 +569,19 @@ var template = Object.assign(document.createElement('template'), {
         width            : 100%;
       }
 
+      #${ XY_CANVAS_ID } {
+        border           : var(--color-input-xy-border);
+        border-radius    : var(--color-input-xy-border-radius);
+      }
+
+      #${ Z_CANVAS_ID } {
+        border           : var(--color-input-z-border);
+        border-radius    : var(--color-input-z-border-radius);
+      }
+
       #${ XY_ID },
       #${ Z_ID } {
         align-items      : center;
-        border           : var(--color-input-xy-border);
-        border-radius    : var(--color-input-xy-border-radius);
         box-sizing       : border-box;
         display          : flex;
         flex-shrink      : 0;
@@ -638,7 +646,10 @@ var template = Object.assign(document.createElement('template'), {
         ));
       }
 
-      #${ Z_NUB_ID } {
+      #${ Z_NUB_ID }.vertical {
+        margin-left      : calc(0px - var(
+          --color-input-slider-radius, ${ DEFAULT_SLIDER_RADIUS }
+        ));
       }
     </style>
 
@@ -702,7 +713,7 @@ const CSS_PROPERTIES = [
 
 const LUMINANCE_OFFSET     = 4 / 7;
 const LUMINANCE_THRESHOLD  = 2 / 3;
-const SELECTION_GRACE_ZONE = 15;
+const SELECTION_GRACE_ZONE = 20;
 
 const Z_AXIS_POSITIONS = new Set([
   'bottom', 'end', 'left', 'right', 'start', 'top'
@@ -1296,6 +1307,7 @@ class ColorInputInternal {
       const horizontal = val !== 'top' && val !== 'bottom';
 
       if (horizontal !== this.horizontal) {
+        this.$zNub.classList[horizontal ? 'remove' : 'add']('vertical');
         this.horizontal = horizontal;
         this._renderZ   = true;
       }
@@ -1327,8 +1339,6 @@ class ColorInputInternal {
   }
 
   setSelectionFromRGB(rgb) {
-    const { xAxisValue: x, yAxisValue: y, zAxisValue: z } = this;
-
     [ this.xAxisValue, this.yAxisValue, this.zAxisValue ] =
       this.mode.fromRGB(...rgb);
 
@@ -1391,11 +1401,11 @@ class ColorInputInternal {
     const z = (this.zDescending ? 1 - this.effectiveZ : this.effectiveZ) * 100;
 
     if (this.horizontal) {
-      this.$zNub.style.left   = '';
+      this.$zNub.style.left   = 'inherit';
       this.$zNub.style.bottom = `${ z }%`;
     } else {
       this.$zNub.style.left   = `${ z }%`;
-      this.$zNub.style.bottom = '';
+      this.$zNub.style.bottom = 'inherit';
     }
   }
 
@@ -1458,8 +1468,11 @@ class ColorInputInternal {
       xyHeight *= 2, xyWidth *= 2, zHeight *= 2, zWidth *= 2;
     }
 
-    xyHeight = xyHeight || 1, xyWidth = xyWidth || 1;
-    zHeight = zHeight || 1, zWidth = zWidth || 1;
+    xyHeight = xyHeight || 1;
+    xyWidth  = xyWidth || 1;
+
+    zHeight = this.horizontal ? zHeight || 1 : 1;
+    zWidth  = this.horizontal ? 1 : zWidth || 1;
 
     if (this.xyImage.width !== xyWidth || this.xyImage.height !== xyHeight) {
       this._renderXY = true;
@@ -1474,7 +1487,7 @@ class ColorInputInternal {
     if (this.zImage.width !== zWidth || this.zImage.height !== zHeight) {
       this._renderZ = true;
 
-      this.$zCanvas.width = zWidth;
+      this.$zCanvas.width  = zWidth;
       this.$zCanvas.height = zHeight;
 
       this.zImage = this.zContext.createImageData(zWidth, zHeight);

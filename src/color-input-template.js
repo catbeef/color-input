@@ -76,11 +76,19 @@ export default Object.assign(document.createElement('template'), {
         width            : 100%;
       }
 
+      #${ XY_CANVAS_ID } {
+        border           : var(--color-input-xy-border);
+        border-radius    : var(--color-input-xy-border-radius);
+      }
+
+      #${ Z_CANVAS_ID } {
+        border           : var(--color-input-z-border);
+        border-radius    : var(--color-input-z-border-radius);
+      }
+
       #${ XY_ID },
       #${ Z_ID } {
         align-items      : center;
-        border           : var(--color-input-xy-border);
-        border-radius    : var(--color-input-xy-border-radius);
         box-sizing       : border-box;
         display          : flex;
         flex-shrink      : 0;
@@ -145,7 +153,10 @@ export default Object.assign(document.createElement('template'), {
         ));
       }
 
-      #${ Z_NUB_ID } {
+      #${ Z_NUB_ID }.vertical {
+        margin-left      : calc(0px - var(
+          --color-input-slider-radius, ${ DEFAULT_SLIDER_RADIUS }
+        ));
       }
     </style>
 
