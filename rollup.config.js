@@ -3,30 +3,27 @@ import rollupPluginNodeResolve from 'rollup-plugin-node-resolve';
 
 export default [
   {
-    entry   : './src/index.js',
     dest    : './dist/index.cjs.js',
+    entry   : './src/index.js',
     format  : 'cjs',
     plugins : [ rollupPluginNodeResolve() ]
   },
   {
+    dest    : './dist/index.iife.js',
     entry   : './src/iife.js',
-    targets : [
-      {
-        dest    : './dist/index.iife.js',
-        format  : 'iife',
-        plugins : [ rollupPluginNodeResolve() ]
-      },
-      {
-        dest    : './dist/index.iife.min.js',
-        format  : 'iife',
-        plugins : [
-          rollupPluginNodeResolve(),
-          rollupPluginBabili({
-            comments: false,
-            keepClassName: true
-          })
-        ]
-      }
+    format  : 'iife',
+    plugins : [ rollupPluginNodeResolve() ]
+  },
+  {
+    dest    : './dist/index.iife.min.js',
+    entry   : './src/iife.js',
+    format  : 'iife',
+    plugins : [
+      rollupPluginNodeResolve(),
+      rollupPluginBabili({
+        comments: false,
+        keepClassName: true
+      })
     ]
   }
 ];

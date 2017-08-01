@@ -37,6 +37,28 @@ export const INITIAL_NUB_MOVEMENT_DURATION = 120;
 //
 // The relative positioning in the third-level containers is to permit us to set
 // the locations of the (absolutely positioned) nubs.
+//
+// The translateZ(0) hack is used on the canvases because of Chrome-level
+// rendering bugs that appear on some computers when moving an element in front
+// of a canvas. It’s unfortunate but I don’t think it’s avoidable.
+//
+// The outline properties are tricky. You’ll see -webkit-focus-ring-color in
+// there, which naturally works only in webkit browsers, but since only webkit
+// browsers currently support web components, for the moment this is alright.
+// The trouble is that doing this:
+//
+//   outline: var(--color-input-z-focus-outline)
+//
+// when the var isn’t defined and no default value is supplied does not do the
+// intuitive thing (i.e., nothing). Instead it clears the value entirely! I’m
+// not sure if this is a bug or prescribed behavior. In addition, there’s no CSS
+// value that can be set that _doesn’t_ change the value; "initial" actually
+// switches it to a black outline, as do inherit and (unsurprisingly) unset.
+// Therefore the act of trying to set the value always leads to a change in the
+// value, and we need to set the browser default explicitly.
+//
+// In the future when firefox or edge support web components, we’ll likely need
+// to make this a programmatically assigned style to get around these issues.
 
 export default Object.assign(document.createElement('template'), {
   innerHTML: `
@@ -72,7 +94,7 @@ export default Object.assign(document.createElement('template'), {
       #${ Z_CANVAS_ID } {
         cursor           : pointer;
         height           : 100%;
-        transform        : translateZ(0); /* prevents horrible repaint bugs */
+        transform        : translateZ(0);
         width            : 100%;
       }
 
@@ -141,7 +163,7 @@ export default Object.assign(document.createElement('template'), {
         position         : absolute;
         transform        : scale(var(--color-input-slider-scale, 0.667));
         transform-origin : center;
-        transition       : transform 80ms ease, border-color 80ms ease;
+        transition       : transform 80ms ease, border-color 100ms ease;
         width            : calc(2 * var(
           --color-input-slider-radius, ${ DEFAULT_SLIDER_RADIUS }
         ));
@@ -156,7 +178,7 @@ export default Object.assign(document.createElement('template'), {
       #${ Z_NUB_ID }.initial-movement {
         transition:
           background-color 80ms  ease,
-          border-color     80ms  ease,
+          border-color     100ms ease,
           bottom           ${ INITIAL_NUB_MOVEMENT_DURATION }ms ease,
           left             ${ INITIAL_NUB_MOVEMENT_DURATION }ms ease,
           transform        80ms  ease;
