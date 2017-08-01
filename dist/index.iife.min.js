@@ -574,9 +574,19 @@ var template = Object.assign(document.createElement('template'), {
         border-radius    : var(--color-input-xy-border-radius);
       }
 
+      #${ XY_CANVAS_ID }:focus {
+        outline          : var(--color-input-xy-focus-outline, -webkit-focus-ring-color auto 5px);
+        outline-offset   : var(--color-input-xy-focus-outline-offset, 0px);
+      }
+
       #${ Z_CANVAS_ID } {
         border           : var(--color-input-z-border);
         border-radius    : var(--color-input-z-border-radius);
+      }
+
+      #${ Z_CANVAS_ID }:focus {
+        outline          : var(--color-input-z-focus-outline, -webkit-focus-ring-color auto 5px);
+        outline-offset   : var(--color-input-z-focus-outline-offset, 0px);
       }
 
       #${ XY_ID },
@@ -915,6 +925,8 @@ class ColorInputInternal {
         document.removeEventListener('mousemove', mousemove);
         document.removeEventListener('mouseup', mouseup);
 
+        this.$xyCanvas.removeEventListener('blur', terminateDrag);
+
         this.$xyNub.classList.remove('dragging');
         this._deregs.delete(terminateDrag);
 
@@ -960,6 +972,8 @@ class ColorInputInternal {
       document.addEventListener('mousemove', mousemove);
       document.addEventListener('mouseup', mouseup);
 
+      this.$xyCanvas.addEventListener('blur', terminateDrag);
+
       _terminateDrag = terminateDrag;
 
       this._deregs.add(terminateDrag);
@@ -997,6 +1011,8 @@ class ColorInputInternal {
         document.removeEventListener('blur', terminateDrag);
         document.removeEventListener('mousemove', mousemove);
         document.removeEventListener('mouseup', mouseup);
+
+        this.$zCanvas.removeEventListener('blur', terminateDrag);
 
         this.$zNub.classList.remove('dragging');
         this._deregs.delete(terminateDrag);
@@ -1040,6 +1056,8 @@ class ColorInputInternal {
       document.addEventListener('blur', terminateDrag);
       document.addEventListener('mousemove', mousemove);
       document.addEventListener('mouseup', mouseup);
+
+      this.$zCanvas.addEventListener('blur', terminateDrag);
 
       _terminateDrag = terminateDrag;
 
@@ -1139,13 +1157,13 @@ class ColorInputInternal {
       event.preventDefault();
     };
 
-    this.$container.addEventListener('keydown', containerKey);
     this.$xyCanvas.addEventListener('mousedown', xyMouseDown);
     this.$xyCanvas.addEventListener('keydown', xyKey);
     this.$xyNub.addEventListener('mousedown', xyNubMouseDown);
     this.$zCanvas.addEventListener('mousedown', zMouseDown);
     this.$zCanvas.addEventListener('keydown', zKey);
     this.$zNub.addEventListener('mousedown', zNubMouseDown);
+    this.$container.addEventListener('keydown', containerKey);
 
     this._deregs
       .add(() => this.$xyCanvas.removeEventListener('mousedown', xyMouseDown))
@@ -1494,6 +1512,14 @@ class ColorInputInternal {
       this.zImage.data.fill(0xFF);
     }
   }
+
+  updateTabIndex() {
+    if (this.$host.hasAttribute('tabindex')) {
+      this.$container.removeAttribute('tabindex');
+    } else {
+      this.$container.setAttribute('tabindex', '0');
+    }
+  }
 }
 
 const PRIVATE = new WeakMap();
@@ -1650,6 +1676,9 @@ class ColorInputElement extends HTMLElement {
       case 'name':
         this.name = current;
         return;
+      case 'tabindex':
+        PRIVATE.get(this).updateTabIndex();
+        return;
       case 'value':
         PRIVATE.get(this).setDefaultValue(current);
     }
@@ -1669,6 +1698,7 @@ Object.defineProperties(ColorInputElement, {
     value: Object.freeze([
       'mode',
       'name',
+      'tabindex',
       'value'
     ])
   }

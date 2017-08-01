@@ -243,6 +243,8 @@ class ColorInputInternal {
         document.removeEventListener('mousemove', mousemove);
         document.removeEventListener('mouseup', mouseup);
 
+        this.$xyCanvas.removeEventListener('blur', terminateDrag);
+
         this.$xyNub.classList.remove('dragging');
         this._deregs.delete(terminateDrag);
 
@@ -288,6 +290,8 @@ class ColorInputInternal {
       document.addEventListener('mousemove', mousemove);
       document.addEventListener('mouseup', mouseup);
 
+      this.$xyCanvas.addEventListener('blur', terminateDrag);
+
       _terminateDrag = terminateDrag;
 
       this._deregs.add(terminateDrag);
@@ -325,6 +329,8 @@ class ColorInputInternal {
         document.removeEventListener('blur', terminateDrag);
         document.removeEventListener('mousemove', mousemove);
         document.removeEventListener('mouseup', mouseup);
+
+        this.$zCanvas.removeEventListener('blur', terminateDrag);
 
         this.$zNub.classList.remove('dragging');
         this._deregs.delete(terminateDrag);
@@ -368,6 +374,8 @@ class ColorInputInternal {
       document.addEventListener('blur', terminateDrag);
       document.addEventListener('mousemove', mousemove);
       document.addEventListener('mouseup', mouseup);
+
+      this.$zCanvas.addEventListener('blur', terminateDrag);
 
       _terminateDrag = terminateDrag;
 
@@ -467,13 +475,13 @@ class ColorInputInternal {
       event.preventDefault();
     };
 
-    this.$container.addEventListener('keydown', containerKey);
     this.$xyCanvas.addEventListener('mousedown', xyMouseDown);
     this.$xyCanvas.addEventListener('keydown', xyKey);
     this.$xyNub.addEventListener('mousedown', xyNubMouseDown);
     this.$zCanvas.addEventListener('mousedown', zMouseDown);
     this.$zCanvas.addEventListener('keydown', zKey);
     this.$zNub.addEventListener('mousedown', zNubMouseDown);
+    this.$container.addEventListener('keydown', containerKey);
 
     this._deregs
       .add(() => this.$xyCanvas.removeEventListener('mousedown', xyMouseDown))
@@ -820,6 +828,14 @@ class ColorInputInternal {
 
       this.zImage = this.zContext.createImageData(zWidth, zHeight);
       this.zImage.data.fill(0xFF);
+    }
+  }
+
+  updateTabIndex() {
+    if (this.$host.hasAttribute('tabindex')) {
+      this.$container.removeAttribute('tabindex');
+    } else {
+      this.$container.setAttribute('tabindex', '0');
     }
   }
 }

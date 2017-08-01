@@ -156,6 +156,9 @@ class ColorInputElement extends HTMLElement {
       case 'name':
         this.name = current;
         return;
+      case 'tabindex':
+        PRIVATE.get(this).updateTabIndex();
+        return;
       case 'value':
         PRIVATE.get(this).setDefaultValue(current);
     }
@@ -175,6 +178,7 @@ Object.defineProperties(ColorInputElement, {
     value: Object.freeze([
       'mode',
       'name',
+      'tabindex',
       'value'
     ])
   }

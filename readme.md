@@ -45,8 +45,12 @@ There is a [demo page](example.html) — but be aware this will currently only w
   - [`--color-input-z-axis-width`](#--color-input-z-axis-width)
   - [`--color-input-xy-border`](#--color-input-xy-border)
   - [`--color-input-xy-border-radius`](#--color-input-xy-border-radius)
+  - [`--color-input-xy-focus-outline`](#--color-input-xy-focus-outline)
+  - [`--color-input-xy-focus-outline-offset`](#--color-input-xy-focus-outline-offset)
   - [`--color-input-z-border`](#--color-input-z-border)
   - [`--color-input-z-border-radius`](#--color-input-z-border-radius)
+  - [`--color-input-z-focus-outline`](#--color-input-z-focus-outline)
+  - [`--color-input-z-focus-outline-offset`](#--color-input-z-focus-outline-offset)
   - [TODO: ADDITIONAL CSS PROPERTIES FOR STYLING THE SLIDER / NUB?](#todo-additional-css-properties-for-styling-the-slider--nub)
 - [ColorInputFormControlElement](#colorinputformcontrolelement)
 
@@ -345,8 +349,12 @@ and slider would end up equal in size as one would expect for such a value.
 
 ### `--color-input-xy-border`
 ### `--color-input-xy-border-radius`
+### `--color-input-xy-focus-outline`
+### `--color-input-xy-focus-outline-offset`
 ### `--color-input-z-border`
 ### `--color-input-z-border-radius`
+### `--color-input-z-focus-outline`
+### `--color-input-z-focus-outline-offset`
 
 These four properties are simply passed down to the content elements. They
 accept the same values as you’d give to `border` etc.

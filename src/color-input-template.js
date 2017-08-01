@@ -81,9 +81,19 @@ export default Object.assign(document.createElement('template'), {
         border-radius    : var(--color-input-xy-border-radius);
       }
 
+      #${ XY_CANVAS_ID }:focus {
+        outline          : var(--color-input-xy-focus-outline, -webkit-focus-ring-color auto 5px);
+        outline-offset   : var(--color-input-xy-focus-outline-offset, 0px);
+      }
+
       #${ Z_CANVAS_ID } {
         border           : var(--color-input-z-border);
         border-radius    : var(--color-input-z-border-radius);
+      }
+
+      #${ Z_CANVAS_ID }:focus {
+        outline          : var(--color-input-z-focus-outline, -webkit-focus-ring-color auto 5px);
+        outline-offset   : var(--color-input-z-focus-outline-offset, 0px);
       }
 
       #${ XY_ID },
