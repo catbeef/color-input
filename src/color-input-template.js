@@ -82,7 +82,10 @@ export default Object.assign(document.createElement('template'), {
       }
 
       #${ XY_CANVAS_ID }:focus {
-        outline          : var(--color-input-xy-focus-outline, -webkit-focus-ring-color auto 5px);
+        outline          : var(
+          --color-input-xy-focus-outline,
+          -webkit-focus-ring-color auto 5px
+        );
         outline-offset   : var(--color-input-xy-focus-outline-offset, 0px);
       }
 
@@ -92,7 +95,10 @@ export default Object.assign(document.createElement('template'), {
       }
 
       #${ Z_CANVAS_ID }:focus {
-        outline          : var(--color-input-z-focus-outline, -webkit-focus-ring-color auto 5px);
+        outline          : var(
+          --color-input-z-focus-outline,
+          -webkit-focus-ring-color auto 5px
+        );
         outline-offset   : var(--color-input-z-focus-outline-offset, 0px);
       }
 
