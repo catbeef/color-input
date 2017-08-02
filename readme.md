@@ -14,6 +14,9 @@ There is a [demo page](example.html) — but be aware this will currently only w
 <!-- MarkdownTOC autolink=true bracket=round depth=3 -->
 
 - [Caveats](#caveats)
+  - [Support](#support)
+    - [Supported](#supported)
+    - [Unsupported](#unsupported)
   - [About Web Components and Forms](#about-web-components-and-forms)
   - [Performance](#performance)
 - [Usage](#usage)
@@ -22,6 +25,7 @@ There is a [demo page](example.html) — but be aware this will currently only w
   - [Script](#script)
 - [Content Attributes](#content-attributes)
   - [The `mode` Attribute](#the-mode-attribute)
+  - [The `clamp` Attribute](#the-clamp-attribute)
 - [IDL Attributes](#idl-attributes)
   - [ColorInputElement.prototype.mode](#colorinputelementprototypemode)
   - [ColorInputElement.prototype.value](#colorinputelementprototypevalue)
@@ -58,18 +62,42 @@ There is a [demo page](example.html) — but be aware this will currently only w
 
 ## Caveats
 
+### Support
+
 This uses various DOM APIs that fall under the greater Web Component umbrella:
 custom `HTMLElement` subclasses, shadow DOM, custom css properties, etc. It does
 not include a polyfill or make use of a framework. Therefore it’s only suitable
-for use where you know these APIs are supported, which at the moment would
-typically mean Electron apps and Chrome extensions.
+for use in applications where you know these APIs are guaranteed to be
+supported, which at the moment would typically mean Electron apps and Chrome
+extensions, not general audience websites.
 
 This project was mainly a way for me to familiarize myself with these upcoming
-technologies and to find out what their limitations are, so I don’t intend to
-adapt this to Polymer or whatever, though feel free to fork it.
+technologies and to find out what their limitations are, which is why not one
+extra moment of my consideration went to the idea of agents lacking support for
+some feature or another. So I don’t intend to adapt this to Polymer or any other
+framework that kinda-sorta fakes web components for old browsers, but feel free
+to fork it.
 
 > *tl;dr:* for a regular website that needs to support older browsers you
 > probably cannot use this until c. 2039 AD
+
+#### Supported
+
+- Chrome: of course
+- Opera: hey now look at you dawg
+
+#### Unsupported
+
+At the time I write this, Firefox is actively developing support for custom
+elements and the related web component APIs, so it will likely be added to the
+previous list sooner than later, and I bet they’ll do a baller job.
+
+Safari isn’t supported, but it does basically work there. You could probably
+make it viable with a few CSS hacks; mainly what fails there is CSS containment.
+
+Edge hasn’t signalled any development being underway on web components yet, and
+it goes without saying that IE doesn’t support any aspect of HTML or Ecmascript
+beyond `<div>`, maybe `<marquee>`, and throwing errors.
 
 ### About Web Components and Forms
 
@@ -182,12 +210,25 @@ There are a total of 30 possible mode values (case insensitive).
 
 The default mode is "hlc".
 
-Note that unlike the others, LAB and HCL are not normally constrained to the
-same set of colors as would be found in the RGB color space, however for the
-purposes of an HTML color picker they need to be. Some color pickers that use
-these models deal with this by "blanking out" imaginary colors, but I’ve chosen
-instead to clamp them, which I think strikes a good balance between accuracy and
-friendliness to typical users.
+### The `clamp` Attribute
+
+This attribute takes a boolean "true" or "false" value; the default is "true".
+
+Unlike the others modes, LAB and HCL are not normally constrained to the same
+set of colors as would be found in the RGB color space. For the purposes of an
+HTML color picker that ultimately models hex values, they need to be. That is to
+say, these color spaces can describe colors which are imaginary within the sRGB
+colorspace, which presents a challenge when it comes to projecting them in a
+context that’s limited to the sRGB color space.
+
+There are two ways I know of to deal with that: you can clamp colors to the
+nearest (sort of) non-imaginary color or you can simply blank them out. By
+default, we clamp them, which in the general case presents the best user
+experience; outside of fairly technical contexts, users are unlikely to find it
+intuitive or useful that random-seeming chunks of a color-picker are just
+"empty", and the clamped presentation still gets the core benefits of HCL in
+terms of being more natural for human vision. However by setting `clamp` to
+false, you can instead map imaginary colors to black.
 
 ## IDL Attributes
 

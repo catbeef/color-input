@@ -78,13 +78,16 @@ class ColorInputInternal {
     // exposed as part of the public element interface. The mode is an object
     // which represents the current color space and supplies methods to convert
     // generic XYZ values into RGB and to convert RGB into generic XYZ within
-    // this space. The _raf property is the unique ID of the currently queued
-    // RAF, so that we can cancel it on disconnection; the _rafFn is the render
-    // loop that sets that value. The _deregs array holds event listener dereg
-    // functions that should be called on disconnection.
+    // this space. The noClamp property shadows the clamp content attribute and
+    // if it’s true, imaginary colors will be blacked out instead of clamped.
+    // The _raf property is the unique ID of the currently queued RAF, so that
+    // we can cancel it on disconnection; the _rafFn is the render loop that
+    // sets that value. The _deregs array holds event listener dereg functions
+    // that should be called on disconnection.
 
     this.colorAccess = new Map();
     this.mode        = color.hlc;
+    this.noClamp     = false;
     this._deregs     = new Set();
     this._raf        = undefined;
 
@@ -215,10 +218,10 @@ class ColorInputInternal {
   }
 
   effectiveSelectionAsRGB() {
-    const { mode, effectiveX, effectiveY, effectiveZ } = this;
+    const { mode, noClamp, effectiveX, effectiveY, effectiveZ } = this;
     const buffer = new Uint8ClampedArray(3);
 
-    mode.write(buffer, 0, effectiveX, effectiveY, effectiveZ);
+    mode.write(buffer, 0, effectiveX, effectiveY, effectiveZ, noClamp);
 
     return buffer;
   }
@@ -516,7 +519,7 @@ class ColorInputInternal {
 
   renderXY() {
     //console.time('renderXY');
-    const { xDescending, yDescending, effectiveZ: z } = this;
+    const { noClamp, xDescending, yDescending, effectiveZ: z } = this;
     const { data, height, width } = this.xyImage;
     const { write } = this.mode;
 
@@ -531,7 +534,7 @@ class ColorInputInternal {
       for (let c = 0; c < width; c++) {
         const x = c / lastWidth || 0;
 
-        write(data, i, xDescending ? 1 - x : x, y, z);
+        write(data, i, xDescending ? 1 - x : x, y, z, noClamp);
 
         i += 4;
       }
@@ -543,7 +546,7 @@ class ColorInputInternal {
 
   renderZ() {
     //console.time('renderZ');
-    const { effectiveX: x, effectiveY: y, mode: { write } } = this;
+    const { noClamp, effectiveX: x, effectiveY: y, mode: { write } } = this;
     const { data } = this.zImage;
     const { length } = data;
 
@@ -552,7 +555,7 @@ class ColorInputInternal {
 
     for (let i = 0; i < length; i += 4) {
       const z = i / lastLength || 0;
-      write(data, i, x, y, offset ? 1 - z : z);
+      write(data, i, x, y, offset ? 1 - z : z, noClamp);
     }
 
     this.zContext.putImageData(this.zImage, 0, 0);
@@ -560,10 +563,10 @@ class ColorInputInternal {
   }
 
   selectionAsRGB() {
-    const { mode, xAxisValue, yAxisValue, zAxisValue } = this;
+    const { mode, noClamp, xAxisValue, yAxisValue, zAxisValue } = this;
     const buffer = new Uint8ClampedArray(3);
 
-    mode.write(buffer, 0, xAxisValue, yAxisValue, zAxisValue);
+    mode.write(buffer, 0, xAxisValue, yAxisValue, zAxisValue, noClamp);
 
     return buffer;
   }
@@ -726,7 +729,7 @@ class ColorInputInternal {
       hcl[2] -= l * LUMINANCE_OFFSET;
     }
 
-    color.hcl.write(rgb, 0, ...hcl);
+    color.hcl.write(rgb, 0, ...hcl, this.noClamp);
 
     this.$zNub.style.borderColor =
     this.$xyNub.style.borderColor =

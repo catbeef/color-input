@@ -188,6 +188,13 @@
             </optgroup>
           </select>
         </label>
+
+        <label>
+          <code>clamp</code>
+          <select id="INPUT_CLAMP">
+            <option value="true" selected>true [default]</option>
+            <option value="false">false</option>
+          </select>
       </div>
 
       <h2>CSS</h2>
@@ -337,6 +344,7 @@
   'use strict';
 
   {
+    const $clampInput    = document.getElementById('INPUT_CLAMP');
     const $colorInput    = document.getElementById('COLOR_INPUT');
     const $gutterInput   = document.getElementById('INPUT_GUTTER_WIDTH');
     const $heightInput   = document.getElementById('INPUT_HEIGHT');
@@ -363,6 +371,10 @@
     };
 
     $colorInput.addEventListener('change', setSwatch);
+
+    $clampInput.addEventListener('change', () =>
+      $colorInput.setAttribute('clamp', $clampInput.value)
+    );
 
     $gutterInput.addEventListener('change', () =>
       $colorInput

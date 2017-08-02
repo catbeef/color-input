@@ -82,7 +82,7 @@ const ZN            = 1.088830;
 
 // WRITE FUNCTIONS /////////////////////////////////////////////////////////////
 
-const hcl = (b, i, xH, yC, zL) => {
+const hcl = (b, i, xH, yC, zL, noClamp) => {
   const h = xH * MAX_HUE;
   const c = yC * MAX_CHROMA;
   const l = zL * MAX_LUMINANCE;
@@ -108,14 +108,22 @@ const hcl = (b, i, xH, yC, zL) => {
   const G = G0 * X + G1 * Y + G2 * Z;
   const V = B0 * X - B1 * Y + B2 * Z;
 
-  b[i] = MAX_BYTE *
+  const rr = MAX_BYTE *
     (R <= RGB_PIV2 ? RGB_DIV0 * R : RGB_DIV1 * (R ** RGB_POW2) - RGB_OFF);
 
-  b[i + 1] = MAX_BYTE *
+  const gg = MAX_BYTE *
     (G <= RGB_PIV2 ? RGB_DIV0 * G : RGB_DIV1 * (G ** RGB_POW2) - RGB_OFF);
 
-  b[i + 2] = MAX_BYTE *
+  const bb = MAX_BYTE *
     (V <= RGB_PIV2 ? RGB_DIV0 * V : RGB_DIV1 * (V ** RGB_POW2) - RGB_OFF);
+
+  if (noClamp && (Math.max(rr, gg, bb) > MAX_BYTE || Math.min(rr, gg, bb) < 0)) {
+    b[i] = b[i + 1] = b[i + 2] = 0;
+  } else {
+    b[i]     = rr;
+    b[i + 1] = gg;
+    b[i + 2] = bb;
+  }
 };
 
 const hsl = (b, i, xH, s, l) => {
@@ -194,7 +202,7 @@ const hsv = (b, i, h, s, v) => {
   }
 };
 
-const lab = (b, i, xL, yA, zB) => {
+const lab = (b, i, xL, yA, zB, noClamp) => {
   const l = xL * MAX_LUMINANCE;
   const A = (yA * AB_MAX) - AB_OFF;
   const B = (zB * AB_MAX) - AB_OFF;
@@ -214,14 +222,22 @@ const lab = (b, i, xL, yA, zB) => {
   const G = G0 * X + G1 * Y + G2 * Z;
   const V = B0 * X - B1 * Y + B2 * Z;
 
-  b[i] = MAX_BYTE *
+  const rr = MAX_BYTE *
     (R <= RGB_PIV2 ? RGB_DIV0 * R : RGB_DIV1 * (R ** RGB_POW2) - RGB_OFF);
 
-  b[i + 1] = MAX_BYTE *
+  const gg = MAX_BYTE *
     (G <= RGB_PIV2 ? RGB_DIV0 * G : RGB_DIV1 * (G ** RGB_POW2) - RGB_OFF);
 
-  b[i + 2] = MAX_BYTE *
+  const bb = MAX_BYTE *
     (V <= RGB_PIV2 ? RGB_DIV0 * V : RGB_DIV1 * (V ** RGB_POW2) - RGB_OFF);
+
+  if (noClamp && Math.max(rr, gg, bb) > MAX_BYTE || Math.min(rr, gg, bb) < 0) {
+    b[i] = b[i + 1] = b[i + 2] = 0;
+  } else {
+    b[i]     = rr;
+    b[i + 1] = gg;
+    b[i + 2] = bb;
+  }
 };
 
 const rgb = (b, i, xR, yG, zB) => {
@@ -342,7 +358,7 @@ export default pairs.reduce((acc, [ name, write, fromRGB, lX, lY, lZ ]) => {
   acc[name] = {
     name,
     labels: [ lX, lZ, lY ],
-    write: (b, i, X, Y, Z) => write(b, i, X, Z, Y),
+    write: (b, i, X, Y, Z, n) => write(b, i, X, Z, Y, n),
     fromRGB: (r, g, b) => {
       const [ x, y, z ] = fromRGB(r, g, b);
       return [ x, z, y ];
@@ -353,7 +369,7 @@ export default pairs.reduce((acc, [ name, write, fromRGB, lX, lY, lZ ]) => {
   acc[name] = {
     name,
     labels: [ lY, lX, lZ ],
-    write: (b, i, X, Y, Z) => write(b, i, Y, X, Z),
+    write: (b, i, X, Y, Z, n) => write(b, i, Y, X, Z, n),
     fromRGB: (r, g, b) => {
       const [ x, y, z ] = fromRGB(r, g, b);
       return [ y, x, z ];
@@ -364,7 +380,7 @@ export default pairs.reduce((acc, [ name, write, fromRGB, lX, lY, lZ ]) => {
   acc[name] = {
     name,
     labels: [ lY, lZ, lX ],
-    write: (b, i, X, Y, Z) => write(b, i, Z, X, Y),
+    write: (b, i, X, Y, Z, n) => write(b, i, Z, X, Y, n),
     fromRGB: (r, g, b) => {
       const [ x, y, z ] = fromRGB(r, g, b);
       return [ y, z, x ];
@@ -375,7 +391,7 @@ export default pairs.reduce((acc, [ name, write, fromRGB, lX, lY, lZ ]) => {
   acc[name] = {
     name,
     labels: [ lZ, lX, lY ],
-    write: (b, i, X, Y, Z) => write(b, i, Y, Z, X),
+    write: (b, i, X, Y, Z, n) => write(b, i, Y, Z, X, n),
     fromRGB: (r, g, b) => {
       const [ x, y, z ] = fromRGB(r, g, b);
       return [ z, x, y ];
@@ -386,7 +402,7 @@ export default pairs.reduce((acc, [ name, write, fromRGB, lX, lY, lZ ]) => {
   acc[name] = {
     name,
     labels: [ lZ, lY, lX ],
-    write: (b, i, X, Y, Z) => write(b, i, Z, Y, X),
+    write: (b, i, X, Y, Z, n) => write(b, i, Z, Y, X, n),
     fromRGB: (r, g, b) => {
       const [ x, y, z ] = fromRGB(r, g, b);
       return [ z, y, x ];

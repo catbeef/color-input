@@ -64,7 +64,7 @@ export default Object.assign(document.createElement('template'), {
   innerHTML: `
     <style>
       :host {
-        contain          : content;
+        contain          : strict;
         display          : block;
         height           : 230px;
         width            : 275px;

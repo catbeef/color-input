@@ -85,7 +85,7 @@ const ZN            = 1.088830;
 
 // WRITE FUNCTIONS /////////////////////////////////////////////////////////////
 
-const hcl = (b, i, xH, yC, zL) => {
+const hcl = (b, i, xH, yC, zL, noClamp) => {
   const h = xH * MAX_HUE;
   const c = yC * MAX_CHROMA;
   const l = zL * MAX_LUMINANCE;
@@ -111,14 +111,22 @@ const hcl = (b, i, xH, yC, zL) => {
   const G = G0 * X + G1 * Y + G2 * Z;
   const V = B0 * X - B1 * Y + B2 * Z;
 
-  b[i] = MAX_BYTE *
+  const rr = MAX_BYTE *
     (R <= RGB_PIV2 ? RGB_DIV0 * R : RGB_DIV1 * (R ** RGB_POW2) - RGB_OFF);
 
-  b[i + 1] = MAX_BYTE *
+  const gg = MAX_BYTE *
     (G <= RGB_PIV2 ? RGB_DIV0 * G : RGB_DIV1 * (G ** RGB_POW2) - RGB_OFF);
 
-  b[i + 2] = MAX_BYTE *
+  const bb = MAX_BYTE *
     (V <= RGB_PIV2 ? RGB_DIV0 * V : RGB_DIV1 * (V ** RGB_POW2) - RGB_OFF);
+
+  if (noClamp && (Math.max(rr, gg, bb) > MAX_BYTE || Math.min(rr, gg, bb) < 0)) {
+    b[i] = b[i + 1] = b[i + 2] = 0;
+  } else {
+    b[i]     = rr;
+    b[i + 1] = gg;
+    b[i + 2] = bb;
+  }
 };
 
 const hsl = (b, i, xH, s, l) => {
@@ -197,7 +205,7 @@ const hsv = (b, i, h, s, v) => {
   }
 };
 
-const lab = (b, i, xL, yA, zB) => {
+const lab = (b, i, xL, yA, zB, noClamp) => {
   const l = xL * MAX_LUMINANCE;
   const A = (yA * AB_MAX) - AB_OFF;
   const B = (zB * AB_MAX) - AB_OFF;
@@ -217,14 +225,22 @@ const lab = (b, i, xL, yA, zB) => {
   const G = G0 * X + G1 * Y + G2 * Z;
   const V = B0 * X - B1 * Y + B2 * Z;
 
-  b[i] = MAX_BYTE *
+  const rr = MAX_BYTE *
     (R <= RGB_PIV2 ? RGB_DIV0 * R : RGB_DIV1 * (R ** RGB_POW2) - RGB_OFF);
 
-  b[i + 1] = MAX_BYTE *
+  const gg = MAX_BYTE *
     (G <= RGB_PIV2 ? RGB_DIV0 * G : RGB_DIV1 * (G ** RGB_POW2) - RGB_OFF);
 
-  b[i + 2] = MAX_BYTE *
+  const bb = MAX_BYTE *
     (V <= RGB_PIV2 ? RGB_DIV0 * V : RGB_DIV1 * (V ** RGB_POW2) - RGB_OFF);
+
+  if (noClamp && Math.max(rr, gg, bb) > MAX_BYTE || Math.min(rr, gg, bb) < 0) {
+    b[i] = b[i + 1] = b[i + 2] = 0;
+  } else {
+    b[i]     = rr;
+    b[i + 1] = gg;
+    b[i + 2] = bb;
+  }
 };
 
 const rgb = (b, i, xR, yG, zB) => {
@@ -345,7 +361,7 @@ var color = pairs.reduce((acc, [ name, write, fromRGB, lX, lY, lZ ]) => {
   acc[name] = {
     name,
     labels: [ lX, lZ, lY ],
-    write: (b, i, X, Y, Z) => write(b, i, X, Z, Y),
+    write: (b, i, X, Y, Z, n) => write(b, i, X, Z, Y, n),
     fromRGB: (r, g, b) => {
       const [ x, y, z ] = fromRGB(r, g, b);
       return [ x, z, y ];
@@ -356,7 +372,7 @@ var color = pairs.reduce((acc, [ name, write, fromRGB, lX, lY, lZ ]) => {
   acc[name] = {
     name,
     labels: [ lY, lX, lZ ],
-    write: (b, i, X, Y, Z) => write(b, i, Y, X, Z),
+    write: (b, i, X, Y, Z, n) => write(b, i, Y, X, Z, n),
     fromRGB: (r, g, b) => {
       const [ x, y, z ] = fromRGB(r, g, b);
       return [ y, x, z ];
@@ -367,7 +383,7 @@ var color = pairs.reduce((acc, [ name, write, fromRGB, lX, lY, lZ ]) => {
   acc[name] = {
     name,
     labels: [ lY, lZ, lX ],
-    write: (b, i, X, Y, Z) => write(b, i, Z, X, Y),
+    write: (b, i, X, Y, Z, n) => write(b, i, Z, X, Y, n),
     fromRGB: (r, g, b) => {
       const [ x, y, z ] = fromRGB(r, g, b);
       return [ y, z, x ];
@@ -378,7 +394,7 @@ var color = pairs.reduce((acc, [ name, write, fromRGB, lX, lY, lZ ]) => {
   acc[name] = {
     name,
     labels: [ lZ, lX, lY ],
-    write: (b, i, X, Y, Z) => write(b, i, Y, Z, X),
+    write: (b, i, X, Y, Z, n) => write(b, i, Y, Z, X, n),
     fromRGB: (r, g, b) => {
       const [ x, y, z ] = fromRGB(r, g, b);
       return [ z, x, y ];
@@ -389,7 +405,7 @@ var color = pairs.reduce((acc, [ name, write, fromRGB, lX, lY, lZ ]) => {
   acc[name] = {
     name,
     labels: [ lZ, lY, lX ],
-    write: (b, i, X, Y, Z) => write(b, i, Z, Y, X),
+    write: (b, i, X, Y, Z, n) => write(b, i, Z, Y, X, n),
     fromRGB: (r, g, b) => {
       const [ x, y, z ] = fromRGB(r, g, b);
       return [ z, y, x ];
@@ -557,7 +573,7 @@ var template = Object.assign(document.createElement('template'), {
   innerHTML: `
     <style>
       :host {
-        contain          : content;
+        contain          : strict;
         display          : block;
         height           : 230px;
         width            : 275px;
@@ -788,13 +804,16 @@ class ColorInputInternal {
     // exposed as part of the public element interface. The mode is an object
     // which represents the current color space and supplies methods to convert
     // generic XYZ values into RGB and to convert RGB into generic XYZ within
-    // this space. The _raf property is the unique ID of the currently queued
-    // RAF, so that we can cancel it on disconnection; the _rafFn is the render
-    // loop that sets that value. The _deregs array holds event listener dereg
-    // functions that should be called on disconnection.
+    // this space. The noClamp property shadows the clamp content attribute and
+    // if it’s true, imaginary colors will be blacked out instead of clamped.
+    // The _raf property is the unique ID of the currently queued RAF, so that
+    // we can cancel it on disconnection; the _rafFn is the render loop that
+    // sets that value. The _deregs array holds event listener dereg functions
+    // that should be called on disconnection.
 
     this.colorAccess = new Map();
     this.mode        = color.hlc;
+    this.noClamp     = false;
     this._deregs     = new Set();
     this._raf        = undefined;
 
@@ -925,10 +944,10 @@ class ColorInputInternal {
   }
 
   effectiveSelectionAsRGB() {
-    const { mode, effectiveX, effectiveY, effectiveZ } = this;
+    const { mode, noClamp, effectiveX, effectiveY, effectiveZ } = this;
     const buffer = new Uint8ClampedArray(3);
 
-    mode.write(buffer, 0, effectiveX, effectiveY, effectiveZ);
+    mode.write(buffer, 0, effectiveX, effectiveY, effectiveZ, noClamp);
 
     return buffer;
   }
@@ -1226,7 +1245,7 @@ class ColorInputInternal {
 
   renderXY() {
     //console.time('renderXY');
-    const { xDescending, yDescending, effectiveZ: z } = this;
+    const { noClamp, xDescending, yDescending, effectiveZ: z } = this;
     const { data, height, width } = this.xyImage;
     const { write } = this.mode;
 
@@ -1241,7 +1260,7 @@ class ColorInputInternal {
       for (let c = 0; c < width; c++) {
         const x = c / lastWidth || 0;
 
-        write(data, i, xDescending ? 1 - x : x, y, z);
+        write(data, i, xDescending ? 1 - x : x, y, z, noClamp);
 
         i += 4;
       }
@@ -1253,7 +1272,7 @@ class ColorInputInternal {
 
   renderZ() {
     //console.time('renderZ');
-    const { effectiveX: x, effectiveY: y, mode: { write } } = this;
+    const { noClamp, effectiveX: x, effectiveY: y, mode: { write } } = this;
     const { data } = this.zImage;
     const { length } = data;
 
@@ -1262,7 +1281,7 @@ class ColorInputInternal {
 
     for (let i = 0; i < length; i += 4) {
       const z = i / lastLength || 0;
-      write(data, i, x, y, offset ? 1 - z : z);
+      write(data, i, x, y, offset ? 1 - z : z, noClamp);
     }
 
     this.zContext.putImageData(this.zImage, 0, 0);
@@ -1270,10 +1289,10 @@ class ColorInputInternal {
   }
 
   selectionAsRGB() {
-    const { mode, xAxisValue, yAxisValue, zAxisValue } = this;
+    const { mode, noClamp, xAxisValue, yAxisValue, zAxisValue } = this;
     const buffer = new Uint8ClampedArray(3);
 
-    mode.write(buffer, 0, xAxisValue, yAxisValue, zAxisValue);
+    mode.write(buffer, 0, xAxisValue, yAxisValue, zAxisValue, noClamp);
 
     return buffer;
   }
@@ -1436,7 +1455,7 @@ class ColorInputInternal {
       hcl[2] -= l * LUMINANCE_OFFSET;
     }
 
-    color.hcl.write(rgb, 0, ...hcl);
+    color.hcl.write(rgb, 0, ...hcl, this.noClamp);
 
     this.$zNub.style.borderColor =
     this.$xyNub.style.borderColor =
@@ -1611,6 +1630,27 @@ class ColorInputElement extends HTMLElement {
     ));
   }
 
+  get clamp() {
+    return !PRIVATE.get(this).clamp;
+  }
+
+  set clamp(value) {
+    const noClamp = value === false;
+    const priv = PRIVATE.get(this);
+
+    if (priv.noClamp !== noClamp) {
+      priv.noClamp   = noClamp;
+      priv._renderXY = true;
+      priv._renderZ  = true;
+    }
+
+    const clamp = String(!noClamp);
+
+    if (clamp !== (this.getAttribute('clamp') || '').toLowerCase().trim()) {
+      this.setAttribute('clamp', clamp);
+    }
+  }
+
   get mode() {
     return PRIVATE.get(this).mode.name;
   }
@@ -1690,14 +1730,17 @@ class ColorInputElement extends HTMLElement {
   }
 
   attributeChangedCallback(attrKey, previous, current) {
-    current  = (current || '').trim();
-    previous = (previous || '').trim();
+    current  = (current || '').trim().toLowerCase();
+    previous = (previous || '').trim().toLowerCase();
 
     if (current === previous) return;
 
     current = current === 'true' || (current === 'false' ? false : current);
 
     switch (attrKey) {
+      case 'clamp':
+        this.clamp = current;
+        return;
       case 'mode':
         this.mode = current;
         return;
@@ -1724,6 +1767,7 @@ class ColorInputElement extends HTMLElement {
 Object.defineProperties(ColorInputElement, {
   observedAttributes: {
     value: Object.freeze([
+      'clamp',
       'mode',
       'name',
       'tabindex',

@@ -63,6 +63,27 @@ class ColorInputElement extends HTMLElement {
     ));
   }
 
+  get clamp() {
+    return !PRIVATE.get(this).clamp;
+  }
+
+  set clamp(value) {
+    const noClamp = value === false;
+    const priv = PRIVATE.get(this);
+
+    if (priv.noClamp !== noClamp) {
+      priv.noClamp   = noClamp;
+      priv._renderXY = true;
+      priv._renderZ  = true;
+    }
+
+    const clamp = String(!noClamp);
+
+    if (clamp !== (this.getAttribute('clamp') || '').toLowerCase().trim()) {
+      this.setAttribute('clamp', clamp);
+    }
+  }
+
   get mode() {
     return PRIVATE.get(this).mode.name;
   }
@@ -142,14 +163,17 @@ class ColorInputElement extends HTMLElement {
   }
 
   attributeChangedCallback(attrKey, previous, current) {
-    current  = (current || '').trim();
-    previous = (previous || '').trim();
+    current  = (current || '').trim().toLowerCase();
+    previous = (previous || '').trim().toLowerCase();
 
     if (current === previous) return;
 
     current = current === 'true' || (current === 'false' ? false : current);
 
     switch (attrKey) {
+      case 'clamp':
+        this.clamp = current;
+        return;
       case 'mode':
         this.mode = current;
         return;
@@ -176,6 +200,7 @@ class ColorInputElement extends HTMLElement {
 Object.defineProperties(ColorInputElement, {
   observedAttributes: {
     value: Object.freeze([
+      'clamp',
       'mode',
       'name',
       'tabindex',
