@@ -1,6 +1,6 @@
 {
   "name": "color-input",
-  "version": "0.0.1-alpha.4",
+  "version": "0.0.1-alpha.5",
   "description": "HCL color picker web component",
   "main": "dist/index.iife.min.js",
   "module": "src/index.js",

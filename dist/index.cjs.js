@@ -945,10 +945,10 @@ class ColorInputInternal {
   }
 
   effectiveSelectionAsRGB() {
-    const { mode, noClamp, effectiveX, effectiveY, effectiveZ } = this;
+    const { mode, effectiveX, effectiveY, effectiveZ } = this;
     const buffer = new Uint8ClampedArray(3);
 
-    mode.write(buffer, 0, effectiveX, effectiveY, effectiveZ, noClamp);
+    mode.write(buffer, 0, effectiveX, effectiveY, effectiveZ, false);
 
     return buffer;
   }
@@ -1290,10 +1290,10 @@ class ColorInputInternal {
   }
 
   selectionAsRGB() {
-    const { mode, noClamp, xAxisValue, yAxisValue, zAxisValue } = this;
+    const { mode, xAxisValue, yAxisValue, zAxisValue } = this;
     const buffer = new Uint8ClampedArray(3);
 
-    mode.write(buffer, 0, xAxisValue, yAxisValue, zAxisValue, noClamp);
+    mode.write(buffer, 0, xAxisValue, yAxisValue, zAxisValue, false);
 
     return buffer;
   }
@@ -1456,7 +1456,7 @@ class ColorInputInternal {
       hcl[2] -= l * LUMINANCE_OFFSET;
     }
 
-    color.hcl.write(rgb, 0, ...hcl, this.noClamp);
+    color.hcl.write(rgb, 0, ...hcl, false);
 
     this.$zNub.style.borderColor =
     this.$xyNub.style.borderColor =
@@ -1491,6 +1491,21 @@ class ColorInputInternal {
   }
 
   signalChange() {
+    if (this.noClamp) {
+      const { mode, xAxisValue, yAxisValue, zAxisValue } = this;
+      const arr = [];
+
+      mode.write(arr, 0, xAxisValue, yAxisValue, zAxisValue, false);
+
+      if (arr.some(n => n > 0xFF || n < 0x00)) {
+        [ this.xAxisValue, this.yAxisValue, this.zAxisValue ] =
+          this.mode.fromRGB(...Uint8ClampedArray.from(arr));
+
+        this._renderXY = true;
+        this._renderZ  = true;
+      }
+    }
+
     this.dirty = true;
     this.$host.dispatchEvent(new CustomEvent('change'));
   }
