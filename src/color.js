@@ -117,7 +117,7 @@ const hcl = (b, i, xH, yC, zL, noClamp) => {
   const bb = MAX_BYTE *
     (V <= RGB_PIV2 ? RGB_DIV0 * V : RGB_DIV1 * (V ** RGB_POW2) - RGB_OFF);
 
-  if (noClamp && (Math.max(rr, gg, bb) > MAX_BYTE || Math.min(rr, gg, bb) < 0)) {
+  if (noClamp && (Math.max(rr, gg, bb) > 0xFF || Math.min(rr, gg, bb) < 0)) {
     b[i] = b[i + 1] = b[i + 2] = 0;
   } else {
     b[i]     = rr;
@@ -231,7 +231,7 @@ const lab = (b, i, xL, yA, zB, noClamp) => {
   const bb = MAX_BYTE *
     (V <= RGB_PIV2 ? RGB_DIV0 * V : RGB_DIV1 * (V ** RGB_POW2) - RGB_OFF);
 
-  if (noClamp && Math.max(rr, gg, bb) > MAX_BYTE || Math.min(rr, gg, bb) < 0) {
+  if (noClamp && (Math.max(rr, gg, bb) > 0xFF || Math.min(rr, gg, bb) < 0)) {
     b[i] = b[i + 1] = b[i + 2] = 0;
   } else {
     b[i]     = rr;
