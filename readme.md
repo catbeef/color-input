@@ -1,5 +1,5 @@
->  _alpha version — still working on introducing accessibility and form_
->  _behavior, etc_
+>  _alpha version — still working on testing accessibility and adding form_
+>  _related behaviors, etc_
 
 # \<color-input\>
 
@@ -37,7 +37,9 @@ There is a [demo page](example.html) — but be aware this will currently only w
     - [ColorInputElement.prototype.lab](#colorinputelementprototypelab)
     - [ColorInputElement.prototype.rgb](#colorinputelementprototypergb)
 - [Events](#events)
+- [Accessibility](#accessibility)
 - [CSS Properties](#css-properties)
+  - [`--color-input-field-position`](#--color-input-field-position)
   - [`--color-input-gutter-width`](#--color-input-gutter-width)
   - [`--color-input-high-res`](#--color-input-high-res)
   - [`--color-input-slider-radius`](#--color-input-slider-radius)
@@ -47,15 +49,7 @@ There is a [demo page](example.html) — but be aware this will currently only w
   - [`--color-input-z-axis-direction`](#--color-input-z-axis-direction)
   - [`--color-input-z-axis-position`](#--color-input-z-axis-position)
   - [`--color-input-z-axis-width`](#--color-input-z-axis-width)
-  - [`--color-input-xy-border`](#--color-input-xy-border)
-  - [`--color-input-xy-border-radius`](#--color-input-xy-border-radius)
-  - [`--color-input-xy-focus-outline`](#--color-input-xy-focus-outline)
-  - [`--color-input-xy-focus-outline-offset`](#--color-input-xy-focus-outline-offset)
-  - [`--color-input-z-border`](#--color-input-z-border)
-  - [`--color-input-z-border-radius`](#--color-input-z-border-radius)
-  - [`--color-input-z-focus-outline`](#--color-input-z-focus-outline)
-  - [`--color-input-z-focus-outline-offset`](#--color-input-z-focus-outline-offset)
-  - [TODO: ADDITIONAL CSS PROPERTIES FOR STYLING THE SLIDER / NUB?](#todo-additional-css-properties-for-styling-the-slider--nub)
+    - [Additional CSS Properties](#additional-css-properties)
 - [ColorInputFormControlElement](#colorinputformcontrolelement)
 
 <!-- /MarkdownTOC -->
@@ -315,6 +309,33 @@ actually in; these are always available.
 Only one event is fired, 'change', when the value changes. You can access the
 new value as `event.target.value`.
 
+## Accessibility
+
+For users who cannot use the mouse (or users who want a bit of finer control),
+when the X/Y or Z members are focused, the keyboard arrow keys nudge the value
+in the appropriate direction. If the shift key is depressed, the nudge interval
+will be larger.
+
+The element also includes a text-based input. It is visible by default, but this
+can be controlled via CSS (see below) — however, even if made invisible, it will
+continue to be available to screen readers. The visual color input is hidden
+from screen readers — even if there were an appropriate aria role for a
+continuous xy plane and we decked it out with descriptions, I’m pretty sure most
+users employing screen readers wouldn’t have a fun time with instructions like
+"adjust the chroma of the color with the up and down arrows". It seemed like
+the best UX path was to make the text input as friendly as possible instead.
+
+Unlike most text-based color inputs, it is not restricted to RGB hex notation.
+It can accept any CSS color notation, and it will auto-suggest css color
+keywords — it’s my hope anyway that this will make selecting a color less of a
+nuisance for people who _probably_ couldn’t care less most of the time.
+
+Note that it’s up to you to supply a `<label>` element. To do so, use the
+nesting form, not the `for`/`id` form — I’m not sure if there’s any way to to
+support the latter because of the nature of custom elements and shadow dom.
+
+> NB: I’m still testing this functionality and working out kinks.
+
 ## CSS Properties
 
 There are a number of CSS properties that allow you to customize the
@@ -322,11 +343,17 @@ presentation of the element. Some simply proxy familiar properties down to
 elements in the shadow DOM while others have original semantics.
 
 Naturally the element itself can be styled (width, height, etc) like any other.
-The default height and width values are 230px and 275px. This is inclusive of
+The default height and width values are 245px and 275px. This is inclusive of
 the interior padding which derives from the slider radius, because the slider
 requires room around the edges of the panel. When this padding is factored in,
 the aggregate effect with all defaults is a 200×200 xy plane and a 25×200
 z-axis.
+
+### `--color-input-field-position`
+
+This can be `top`, `bottom` (default) or `none`. It determines the position of
+the text-based input. If `none`, the text input is not visible, but it will
+remain available for screenreaders.
 
 ### `--color-input-gutter-width`
 
@@ -351,7 +378,7 @@ input is quite small to begin with.
 ### `--color-input-slider-radius`
 
 This value determines the max size of the sliders — and consequently it also
-determines how much padding lives around the color panels. It defaults to 15px.
+determines how much padding lives around the color panels. It defaults to 13px.
 
 ### `--color-input-slider-scale`
 
@@ -388,27 +415,69 @@ if present, "cuts into" both the plane and the slider; thus a
 area given to the z-axis would end up being 50% less 5px, such that the plane
 and slider would end up equal in size as one would expect for such a value.
 
-### `--color-input-xy-border`
-### `--color-input-xy-border-radius`
-### `--color-input-xy-focus-outline`
-### `--color-input-xy-focus-outline-offset`
-### `--color-input-z-border`
-### `--color-input-z-border-radius`
-### `--color-input-z-focus-outline`
-### `--color-input-z-focus-outline-offset`
+#### Additional CSS Properties
 
-These four properties are simply passed down to the content elements. They
+There are quite a few additional properties available for more granular styling.
+This is a best-effort at enabling high customization within the constraints of
+a shadow-dom custom element. Currently the spec has a bit of a hole: there’s no
+mechanism for exposing specific children for external styling via custom pseudo
+elements or pseudo classes. In many cases, custom CSS properties fulfill the
+need for internal styling quite well (and in certain ways a more powerful tool).
+However as you’ll see below it gets silly when you want to just let people
+outright customize, since it’s not practical or realistic to proxy the hundreds
+of possible properties that might apply to a given descendent.
+
+There are additional issues. To the extent that they can be inherited
+vertically and have selector specificity, custom properties do cascade as usual; 
+however, there’s no mechanism to support interrelated CSS properties where a
+compound/shorthand property might be partially superceded by a subsequent, more
+specific property. For example we can support 'background' or 'background-color'
+but not both, because we cannot introspect which should have higher precedence
+if both are defined. To deal with this (and to help keep the number of
+properties sort of almost reasonable) I’ve preferred the compound versions.
+Another issue is pseudoclass states — you’ll see we need to use properties like
+`foo-focus-outline` to support `:focus`.
+
+- `--color-input-xy-border`
+- `--color-input-xy-border-radius`
+- `--color-input-z-border`
+- `--color-input-z-border-radius`
+
+The above four properties apply to the xy panel and z slider elements. They
 accept the same values as you’d give to `border` etc.
 
-> There is no way to define pseudo element or pseudo class selectors for shadow
-> DOM elements presently; if there were, it’d be a better fit than just choosing
-> a subset of properties in this manner. For one, it’s not realistic to proxy
-> every possible rule down like this, but more importantly, even if we did, the
-> ordinary cascade rules won’t entirely apply; for example, we cannot support
-> "border-left" because there’s no mechanism for us to introspect what order
-> custom properties were defined in.
+- `--color-input-field-background`
+- `--color-input-field-border-color`
+- `--color-input-field-border-radius`
+- `--color-input-field-border-style`
+- `--color-input-field-border-width`
+- `--color-input-field-color`
+- `--color-input-field-font`
+- `--color-input-field-height`
+- `--color-input-field-letter-spacing`
+- `--color-input-field-padding`
+- `--color-input-field-text-align`
+- `--color-input-field-text-shadow`
+- `--color-input-field-webkit-appearance`
 
-### TODO: ADDITIONAL CSS PROPERTIES FOR STYLING THE SLIDER / NUB?
+Likewise these can be used to style the text input, if it’s visible. It’s a bit
+difficult to determine which properties to proxy for this case; there’s an
+enormous number that could potentially be useful, but it’d feel silly to try to
+get them all. I think this covers the majority of styling needs, at least. For a
+more customized text input than the above allows, for example if you’re using
+Material Design or another library that does lots of crazy stuff to inputs, you
+can set `--color-input-field-position` to `none` and supply a replacement input
+yourself and sync it on change (but if you do, set it to `aria-hidden`, because
+it will be redundant for screen readers).
+
+- `--color-input-field-focus-outline-offset`
+- `--color-input-field-focus-outline`
+- `--color-input-xy-focus-outline-offset`
+- `--color-input-xy-focus-outline`
+- `--color-input-z-focus-outline-offset`
+- `--color-input-z-focus-outline`
+
+These six properties are specific to the `:focus` states of the three elements.
 
 ## ColorInputFormControlElement
 

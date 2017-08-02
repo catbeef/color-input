@@ -508,17 +508,171 @@ const cssColorStringToRGB = str => {
 const rgbToHexString = rgb =>
   `#${ rgb.map(rgbValueToHexComponent).join('') }`;
 
-const CONTAINER_ID = 'CI_CONTAINER';
-const GUTTER_ID    = 'CI_GUTTER';
-const XY_CANVAS_ID = 'CI_XY_CANVAS';
-const XY_ID        = 'CI_XY';
-const XY_NUB_ID    = 'CI_XY_NUB';
-const Z_CANVAS_ID  = 'CI_Z_CANVAS';
-const Z_ID         = 'CI_Z';
-const Z_NUB_ID     = 'CI_Z_NUB';
+var CSS_COLORS = [
+  'aliceblue',
+  'antiquewhite',
+  'aqua',
+  'aquamarine',
+  'azure',
+  'beige',
+  'bisque',
+  'black',
+  'blanchedalmond',
+  'blue',
+  'blueviolet',
+  'brown',
+  'burlywood',
+  'cadetblue',
+  'chartreuse',
+  'chocolate',
+  'coral',
+  'cornflowerblue',
+  'cornsilk',
+  'crimson',
+  'cyan',
+  'darkblue',
+  'darkcyan',
+  'darkgoldenrod',
+  'darkgray',
+  'darkgreen',
+  'darkgrey',
+  'darkkhaki',
+  'darkmagenta',
+  'darkolivegreen',
+  'darkorange',
+  'darkorchid',
+  'darkred',
+  'darksalmon',
+  'darkseagreen',
+  'darkslateblue',
+  'darkslategray',
+  'darkslategrey',
+  'darkturquoise',
+  'darkviolet',
+  'deeppink',
+  'deepskyblue',
+  'dimgray',
+  'dimgrey',
+  'dodgerblue',
+  'firebrick',
+  'floralwhite',
+  'forestgreen',
+  'fuchsia',
+  'gainsboro',
+  'ghostwhite',
+  'gold',
+  'goldenrod',
+  'gray',
+  'green',
+  'greenyellow',
+  'grey',
+  'honeydew',
+  'hotpink',
+  'indianred',
+  'indigo',
+  'ivory',
+  'khaki',
+  'lavender',
+  'lavenderblush',
+  'lawngreen',
+  'lemonchiffon',
+  'lightblue',
+  'lightcoral',
+  'lightcyan',
+  'lightgoldenrodyellow',
+  'lightgray',
+  'lightgreen',
+  'lightgrey',
+  'lightpink',
+  'lightsalmon',
+  'lightseagreen',
+  'lightskyblue',
+  'lightslategray',
+  'lightslategrey',
+  'lightsteelblue',
+  'lightyellow',
+  'lime',
+  'limegreen',
+  'linen',
+  'magenta',
+  'maroon',
+  'mediumaquamarine',
+  'mediumblue',
+  'mediumorchid',
+  'mediumpurple',
+  'mediumseagreen',
+  'mediumslateblue',
+  'mediumspringgreen',
+  'mediumturquoise',
+  'mediumvioletred',
+  'midnightblue',
+  'mintcream',
+  'mistyrose',
+  'moccasin',
+  'navajowhite',
+  'navy',
+  'oldlace',
+  'olive',
+  'olivedrab',
+  'orange',
+  'orangered',
+  'orchid',
+  'palegoldenrod',
+  'palegreen',
+  'paleturquoise',
+  'palevioletred',
+  'papayawhip',
+  'peachpuff',
+  'peru',
+  'pink',
+  'plum',
+  'powderblue',
+  'purple',
+  'rebeccapurple',
+  'red',
+  'rosybrown',
+  'royalblue',
+  'saddlebrown',
+  'salmon',
+  'sandybrown',
+  'seagreen',
+  'seashell',
+  'sienna',
+  'silver',
+  'skyblue',
+  'slateblue',
+  'slategray',
+  'slategrey',
+  'snow',
+  'springgreen',
+  'steelblue',
+  'tan',
+  'teal',
+  'thistle',
+  'tomato',
+  'turquoise',
+  'violet',
+  'wheat',
+  'white',
+  'whitesmoke',
+  'yellow',
+  'yellowgreen'
+];
+
+const CONTAINER_ID  = 'CI_CONTAINER';
+const GUTTER_ID     = 'CI_GUTTER';
+const OUTER_ID      = 'CI_OUTER';
+const TEXT_DATA_ID  = 'CI_TEXT_DATA';
+const TEXT_INPUT_ID = 'CI_TEXT_INPUT';
+const XY_CANVAS_ID  = 'CI_XY_CANVAS';
+const XY_ID         = 'CI_XY';
+const XY_NUB_ID     = 'CI_XY_NUB';
+const Z_CANVAS_ID   = 'CI_Z_CANVAS';
+const Z_ID          = 'CI_Z';
+const Z_NUB_ID      = 'CI_Z_NUB';
 
 const DEFAULT_GUTTER_WIDTH          = '20px';
-const DEFAULT_SLIDER_RADIUS         = '15px';
+const DEFAULT_SLIDER_RADIUS         = '13px';
 const DEFAULT_Z_AXIS_WIDTH          = '35px';
 const INITIAL_NUB_MOVEMENT_DURATION = 120;
 
@@ -576,24 +730,35 @@ var template = Object.assign(document.createElement('template'), {
       :host {
         contain          : strict;
         display          : block;
-        height           : 230px;
+        height           : 245px;
         width            : 275px;
+      }
+
+      #${ OUTER_ID } {
+        display          : flex;
+        flex-direction   : column;
+        height           : 100%;
+        outline-offset   : -5px; /* will be truncated otherwise */
+        width            : 100%;
+      }
+
+      #${ OUTER_ID }.dragging {
+        cursor           : -webkit-grabbing;
+        cursor           : grabbing;
       }
 
       #${ CONTAINER_ID } {
         box-sizing       : border-box;
         display          : flex;
-        height           : 100%;
+        flex             : 1 0 0;
         left             : 0;
-        outline-offset   : -5px; /* will be truncated otherwise */
         overflow         : hidden;
         padding          : var(
           --color-input-slider-radius, ${ DEFAULT_SLIDER_RADIUS }
         );
-        position         : absolute;
+        position         : relative;
         top              : 0;
         user-select      : none;
-        width            : 100%;
       }
 
       #${ GUTTER_ID } {
@@ -606,6 +771,12 @@ var template = Object.assign(document.createElement('template'), {
         height           : 100%;
         transform        : translateZ(0);
         width            : 100%;
+      }
+
+      .dragging #${ XY_CANVAS_ID },
+      .dragging #${ Z_CANVAS_ID } {
+        cursor           : -webkit-grabbing;
+        cursor           : grabbing;
       }
 
       #${ XY_CANVAS_ID } {
@@ -663,7 +834,8 @@ var template = Object.assign(document.createElement('template'), {
         ));
         bottom           : 0;
         box-sizing       : border-box;
-        cursor           : pointer;
+        cursor           : -webkit-grab;
+        cursor           : grab;
         height           : calc(2 * var(
           --color-input-slider-radius, ${ DEFAULT_SLIDER_RADIUS }
         ));
@@ -679,9 +851,11 @@ var template = Object.assign(document.createElement('template'), {
         ));
       }
 
-      #${ XY_NUB_ID }.dragging,
-      #${ Z_NUB_ID }.dragging {
-        transform: none;
+      .dragging-xy #${ XY_NUB_ID },
+      .dragging-z #${ Z_NUB_ID } {
+        cursor           : -webkit-grabbing;
+        cursor           : grabbing;
+        transform        : none;
       }
 
       #${ XY_NUB_ID }.initial-movement,
@@ -706,33 +880,96 @@ var template = Object.assign(document.createElement('template'), {
           --color-input-slider-radius, ${ DEFAULT_SLIDER_RADIUS }
         ));
       }
+
+      #${ TEXT_INPUT_ID } {
+        margin           : var(
+          --color-input-slider-radius, ${ DEFAULT_SLIDER_RADIUS }
+        );
+        margin-top       : calc(
+          var(--color-input-gutter-width, ${ DEFAULT_GUTTER_WIDTH }) -
+          var(--color-input-slider-radius, ${ DEFAULT_SLIDER_RADIUS })
+        );
+        speak-as         : spell-out no-punctuation; /* not yet supported? */
+
+        /* Proxied vars where no default value works fine */
+        border-color     : var(--color-input-field-border-color);
+        border-radius    : var(--color-input-field-border-radius);
+        height           : var(--color-input-field-height);
+        letter-spacing   : var(--color-input-field-letter-spacing);
+        text-align       : var(--color-input-field-text-align);
+        text-shadow      : var(--color-input-field-text-shadow);
+
+        /* Proxied vars that need a default or else they behave like unset... */
+        /* ...it seems a bit arbitrary, is this not some sort of bug?         */
+        /* As with outline above, we need to include the webkit defaults      */
+        /* explicitly, which is okay as a stopgap, but presents a problem in  */
+        /* the long term...                                                   */
+
+        background       : var(--color-input-field-background, white);
+        border-style     : var(--color-input-field-border-style, inset);
+        border-width     : var(--color-input-field-border-width, 2px);
+        color            : var(--color-input-field-color, initial);
+        font             : var(--color-input-field-font, 11px system-ui);
+        padding          : var(--color-input-field-padding, 1px);
+
+        -webkit-appearance: var(
+          --color-input-field-webkit-appearance, textfield
+        );
+      }
+
+      #${ TEXT_INPUT_ID }:focus {
+        outline          : var(
+          --color-input-field-focus-outline,
+          -webkit-focus-ring-color auto 5px
+        );
+        outline-offset   : var(--color-input-field-focus-outline-offset, 0px);
+      }
+
+      .dragging #${ TEXT_INPUT_ID } {
+        cursor           : -webkit-grabbing;
+        cursor           : grabbing;
+      }
     </style>
 
+    <datalist id="${ TEXT_DATA_ID }">
+      ${ CSS_COLORS.map(name => `<option value="${ name }">`) }
+    </datalist>
+
     <div
-      id="${ CONTAINER_ID }"
+      id="${ OUTER_ID }"
       tabindex="0">
 
-      <div id="${ XY_ID }">
-        <canvas
-          height="0"
-          id="${ XY_CANVAS_ID }"
-          tabindex="0"
-          width="0">
-        </canvas>
-        <div id="${ XY_NUB_ID }"></div>
+      <div
+        aria-hidden="true"
+        id="${ CONTAINER_ID }">
+
+        <div id="${ XY_ID }">
+          <canvas
+            height="0"
+            id="${ XY_CANVAS_ID }"
+            tabindex="0"
+            width="0">
+          </canvas>
+          <div id="${ XY_NUB_ID }"></div>
+        </div>
+
+        <div id="${ GUTTER_ID }"></div>
+
+        <div id="${ Z_ID }">
+          <canvas
+            height="0"
+            id="${ Z_CANVAS_ID }"
+            tabindex="0"
+            width="0">
+          </canvas>
+          <div id="${ Z_NUB_ID }"></div>
+        </div>
       </div>
 
-      <div id="${ GUTTER_ID }"></div>
-
-      <div id="${ Z_ID }">
-        <canvas
-          height="0"
-          id="${ Z_CANVAS_ID }"
-          tabindex="0"
-          width="0">
-        </canvas>
-        <div id="${ Z_NUB_ID }"></div>
-      </div>
+      <input
+        id="${ TEXT_INPUT_ID }"
+        list="${ TEXT_DATA_ID }"
+        type="text">
     </div>
   `
 });
@@ -741,34 +978,40 @@ const ARROW_KEYS = new Set([
   'ArrowDown', 'ArrowLeft', 'ArrowRight', 'ArrowUp'
 ]);
 
-const DIRECTION_PROP    = 'direction';
-const GUTTER_WIDTH_PROP = '--color-input-gutter-width';
-const HIGH_RES_PROP     = '--color-input-high-res';
-const X_DIRECTION_PROP  = '--color-input-x-axis-direction';
-const Y_DIRECTION_PROP  = '--color-input-y-axis-direction';
-const Z_DIRECTION_PROP  = '--color-input-z-axis-direction';
-const Z_POSITION_PROP   = '--color-input-z-axis-position';
-const Z_WIDTH_PROP      = '--color-input-z-axis-width';
+const DIRECTION_PROP      = 'direction';
+const GUTTER_WIDTH_PROP   = '--color-input-gutter-width';
+const HIGH_RES_PROP       = '--color-input-high-res';
+const INPUT_POSITION_PROP = '--color-input-field-position';
+const X_DIRECTION_PROP    = '--color-input-x-axis-direction';
+const Y_DIRECTION_PROP    = '--color-input-y-axis-direction';
+const Z_DIRECTION_PROP    = '--color-input-z-axis-direction';
+const Z_POSITION_PROP     = '--color-input-z-axis-position';
+const Z_WIDTH_PROP        = '--color-input-z-axis-width';
 
 const DEFAULT_AXIS_DIRECTION = 'ascending';
 const DEFAULT_DIRECTION      = 'ltr';
+const DEFAULT_INPUT_POSITION = 'bottom';
 const DEFAULT_RESOLUTION     = 'false';
 const DEFAULT_Z_POSITION     = 'end';
 
 const CSS_PROPERTIES = [
-  [ DIRECTION_PROP,    DEFAULT_DIRECTION      ],
-  [ GUTTER_WIDTH_PROP, DEFAULT_GUTTER_WIDTH   ],
-  [ HIGH_RES_PROP,     DEFAULT_RESOLUTION     ],
-  [ X_DIRECTION_PROP,  DEFAULT_AXIS_DIRECTION ],
-  [ Y_DIRECTION_PROP,  DEFAULT_AXIS_DIRECTION ],
-  [ Z_DIRECTION_PROP,  DEFAULT_AXIS_DIRECTION ],
-  [ Z_POSITION_PROP,   DEFAULT_Z_POSITION     ],
-  [ Z_WIDTH_PROP,      DEFAULT_Z_AXIS_WIDTH   ]
+  [ DIRECTION_PROP,      DEFAULT_DIRECTION      ],
+  [ GUTTER_WIDTH_PROP,   DEFAULT_GUTTER_WIDTH   ],
+  [ HIGH_RES_PROP,       DEFAULT_RESOLUTION     ],
+  [ INPUT_POSITION_PROP, DEFAULT_INPUT_POSITION ],
+  [ X_DIRECTION_PROP,    DEFAULT_AXIS_DIRECTION ],
+  [ Y_DIRECTION_PROP,    DEFAULT_AXIS_DIRECTION ],
+  [ Z_DIRECTION_PROP,    DEFAULT_AXIS_DIRECTION ],
+  [ Z_POSITION_PROP,     DEFAULT_Z_POSITION     ],
+  [ Z_WIDTH_PROP,        DEFAULT_Z_AXIS_WIDTH   ]
 ];
 
 const LUMINANCE_OFFSET     = 4 / 7;
 const LUMINANCE_THRESHOLD  = 2 / 3;
-const SELECTION_GRACE_ZONE = 20;
+
+const INPUT_POSITIONS = new Set([
+  'top', 'bottom', 'none'
+]);
 
 const Z_AXIS_POSITIONS = new Set([
   'bottom', 'end', 'left', 'right', 'start', 'top'
@@ -791,6 +1034,8 @@ class ColorInputInternal {
     this.$host      = host;
     this.$container = tree.getElementById(CONTAINER_ID);
     this.$gutter    = tree.getElementById(GUTTER_ID);
+    this.$input     = tree.getElementById(TEXT_INPUT_ID);
+    this.$outer     = tree.getElementById(OUTER_ID);
     this.$xy        = tree.getElementById(XY_ID);
     this.$xyCanvas  = tree.getElementById(XY_CANVAS_ID);
     this.$xyNub     = tree.getElementById(XY_NUB_ID);
@@ -817,6 +1062,7 @@ class ColorInputInternal {
     this.noClamp     = false;
     this._deregs     = new Set();
     this._raf        = undefined;
+    this._grabStyle  = undefined;
 
     this._rafFn = () => {
       this.render();
@@ -853,14 +1099,15 @@ class ColorInputInternal {
     // zPosition implies a horizontal or vertical orientation for the locations
     // of the xy plane and z slider.
 
-    this.css         = new Map();
-    this.highRes     = false;
-    this.highResAuto = window.devicePixelRatio > 1;
-    this.horizontal  = true;
-    this.xDescending = false;
-    this.yDescending = false;
-    this.zDescending = false;
-    this.zPosition   = 'end';
+    this.css           = new Map();
+    this.highRes       = false;
+    this.highResAuto   = window.devicePixelRatio > 1;
+    this.horizontal    = true;
+    this.inputPosition = DEFAULT_INPUT_POSITION;
+    this.xDescending   = false;
+    this.yDescending   = false;
+    this.zDescending   = false;
+    this.zPosition     = 'end';
 
     // CANVAS CONTEXTS & IMAGEDATA /////////////////////////////////////////////
 
@@ -901,8 +1148,6 @@ class ColorInputInternal {
     // BOOTSTRAPPING ///////////////////////////////////////////////////////////
 
     shadow.append(tree);
-
-    this.setLabels();
   }
 
   get effectiveX() {
@@ -933,6 +1178,22 @@ class ColorInputInternal {
     return this.highRes ? this.$zCanvas.width / 2 : this.$zCanvas.width;
   }
 
+  addGrab() {
+    if (!this._grabStyle) {
+      this._grabStyle = Object.assign(document.createElement('style'), {
+        innerText: `* { cursor: not-allowed !important; }`
+      });
+    }
+
+    document.head.appendChild(this._grabStyle);
+  }
+
+  removeGrab() {
+    if (this._grabStyle) {
+      this._grabStyle.remove();
+    }
+  }
+
   connect() {
     this._rafFn();
     this.listen();
@@ -942,6 +1203,8 @@ class ColorInputInternal {
     cancelAnimationFrame(this._raf);
     this._deregs.forEach(fn => fn());
     this._deregs.clear();
+    this._grabStyle = undefined;
+    this.removeGrab();
   }
 
   effectiveSelectionAsRGB() {
@@ -961,7 +1224,9 @@ class ColorInputInternal {
 
       this.setXYTentativelyFromEvent(event);
       this._dragging = true;
-      this.$xyNub.classList.add('dragging', 'initial-movement');
+      this.$outer.classList.add('dragging', 'dragging-xy');
+      this.$xyNub.classList.add('initial-movement');
+      this.addGrab();
 
       xyTimeout = setTimeout(
         () => this.$xyNub.classList.remove('initial-movement'),
@@ -973,9 +1238,11 @@ class ColorInputInternal {
         document.removeEventListener('mousemove', mousemove);
         document.removeEventListener('mouseup', mouseup);
 
+        this.removeGrab();
+
         this.$xyCanvas.removeEventListener('blur', terminateDrag);
 
-        this.$xyNub.classList.remove('dragging');
+        this.$outer.classList.remove('dragging', 'dragging-xy');
         this._deregs.delete(terminateDrag);
 
         this._dragging   = false;
@@ -998,13 +1265,16 @@ class ColorInputInternal {
 
       const mouseup = ({ clientX, clientY }) => {
         const { bottom, left, right, top } =
-          this.$xyCanvas.getBoundingClientRect();
+          this.$container.getBoundingClientRect();
+
+        const graceZone =
+          Number.parseFloat(window.getComputedStyle(this.$container).padding);
 
         const isSelection =
-          clientX + SELECTION_GRACE_ZONE >= left &&
-          clientX - SELECTION_GRACE_ZONE <= right &&
-          clientY + SELECTION_GRACE_ZONE >= top &&
-          clientY - SELECTION_GRACE_ZONE <= bottom;
+          clientX + graceZone >= left &&
+          clientX - graceZone <= right &&
+          clientY + graceZone >= top &&
+          clientY - graceZone <= bottom;
 
         if (isSelection) {
           this.xAxisValue = this._transientX;
@@ -1048,7 +1318,9 @@ class ColorInputInternal {
 
       this.setZTentativelyFromEvent(event);
       this._dragging = true;
-      this.$zNub.classList.add('dragging', 'initial-movement');
+      this.$outer.classList.add('dragging', 'dragging-z');
+      this.$zNub.classList.add('initial-movement');
+      this.addGrab();
 
       zTimeout = setTimeout(
         () => this.$zNub.classList.remove('initial-movement'),
@@ -1060,9 +1332,11 @@ class ColorInputInternal {
         document.removeEventListener('mousemove', mousemove);
         document.removeEventListener('mouseup', mouseup);
 
+        this.removeGrab();
+
         this.$zCanvas.removeEventListener('blur', terminateDrag);
 
-        this.$zNub.classList.remove('dragging');
+        this.$outer.classList.remove('dragging', 'dragging-z');
         this._deregs.delete(terminateDrag);
 
         this._dragging   = false;
@@ -1086,11 +1360,14 @@ class ColorInputInternal {
         const { bottom, left, right, top } =
           this.$zCanvas.getBoundingClientRect();
 
+        const graceZone =
+          Number.parseFloat(window.getComputedStyle(this.$container).padding);
+
         const isSelection =
-          clientX + SELECTION_GRACE_ZONE >= left &&
-          clientX - SELECTION_GRACE_ZONE <= right &&
-          clientY + SELECTION_GRACE_ZONE >= top &&
-          clientY - SELECTION_GRACE_ZONE <= bottom;
+          clientX + graceZone >= left &&
+          clientX - graceZone <= right &&
+          clientY + graceZone >= top &&
+          clientY - graceZone <= bottom;
 
         if (isSelection) {
           this.zAxisValue = this._transientZ;
@@ -1128,7 +1405,7 @@ class ColorInputInternal {
       zMouseDown({ offsetX, offsetY });
     };
 
-    const containerKey = event => {
+    const outerKey = event => {
       if (event.defaultPrevented) return;
 
       if (this._dragging && event.key === 'Escape') {
@@ -1205,22 +1482,26 @@ class ColorInputInternal {
       event.preventDefault();
     };
 
+    const inputChange = () => this.$host.value = this.$input.value;
+
+    this.$input.addEventListener('change', inputChange);
     this.$xyCanvas.addEventListener('mousedown', xyMouseDown);
     this.$xyCanvas.addEventListener('keydown', xyKey);
     this.$xyNub.addEventListener('mousedown', xyNubMouseDown);
     this.$zCanvas.addEventListener('mousedown', zMouseDown);
     this.$zCanvas.addEventListener('keydown', zKey);
     this.$zNub.addEventListener('mousedown', zNubMouseDown);
-    this.$container.addEventListener('keydown', containerKey);
+    this.$outer.addEventListener('keydown', outerKey);
 
     this._deregs
+      .add(() => this.$input.removeEventListener('change', inputChange))
       .add(() => this.$xyCanvas.removeEventListener('mousedown', xyMouseDown))
       .add(() => this.$xyCanvas.removeEventListener('keydown', xyKey))
       .add(() => this.$xyNub.removeEventListener('mousedown', xyNubMouseDown))
       .add(() => this.$zCanvas.removeEventListener('mousedown', zMouseDown))
       .add(() => this.$zCanvas.removeEventListener('keydown', zKey))
       .add(() => this.$zNub.removeEventListener('mousedown', zNubMouseDown))
-      .add(() => this.$container.removeEventListener('keydown', containerKey));
+      .add(() => this.$outer.removeEventListener('keydown', outerKey));
   }
 
   render() {
@@ -1304,6 +1585,7 @@ class ColorInputInternal {
     if (!this.dirty) {
       this.setSelectionFromRGB(this.defaultValue || [ 0, 0, 0 ]);
       this.hasValue = Boolean(this.defaultValue);
+      this.$input.value = this.$host.value;
     }
   }
 
@@ -1323,8 +1605,6 @@ class ColorInputInternal {
 
     this._renderXY   = true;
     this._renderZ    = true;
-
-    this.setLabels();
   }
 
   setGutterAndZWidthFromCSS(gutterChanged) {
@@ -1338,32 +1618,35 @@ class ColorInputInternal {
     this.$z.style.flexBasis = `calc(${ zWidth } - (${ gutterWidth } / 2))`;
   }
 
-  setLabels() {
-    // let [ labelX, labelY, labelZ ] = this.mode.labels;
+  setInputPositionFromCSS() {
+    let value = this.css.get(INPUT_POSITION_PROP);
 
-    // // TODO: Figure out how to internationalize this and make it more
-    // // informative.
+    if (!INPUT_POSITIONS.has(value)) value = DEFAULT_INPUT_POSITION;
 
-    // const xDir = this.xDescending ? 'right' : 'left';
-    // const yDir = this.yDescending ? 'top' : 'bottom';
+    if (this.inputPosition === value) return;
 
-    // const zDir = this.zDescending ?
-    //   this.horizontal ? 'top' : 'right' :
-    //   this.horizontal ? 'bottom' : 'left';
+    if (this.inputPosition === 'none') {
+      Object.assign(this.$input.style, {
+        position: '',
+        clip: ''
+      });
+    }
 
-    // const labelXY = `
-    //   ${ labelX } (left & right arrows, increasing from the ${ xDir });
-    //   ${ labelY } (up & down arrows, increasing from the ${ yDir })
-    // `;
+    this.inputPosition = value;
 
-    // labelZ = `
-    //   ${ labelZ }
-    //   (${ this.horizontal ? 'up & down arrows' : 'left & right arrows' },
-    //   increasing from the ${ zDir })
-    // `;
-
-    // this.$xyCanvas.setAttribute('aria-label', labelXY);
-    // this.$zCanvas.setAttribute('aria-label', labelZ);
+    switch (value) {
+      case 'bottom':
+        this.$outer.style.flexDirection = 'column';
+        return;
+      case 'none':
+        Object.assign(this.$input.style, {
+          position: 'absolute',
+          clip: 'rect(1px, 1px, 1px, 1px)'
+        });
+        return;
+      case 'top':
+        this.$outer.style.flexDirection = 'column-reverse';
+    }
   }
 
   setOrientationFromCSS(orientationChanged, directionChanged) {
@@ -1507,6 +1790,7 @@ class ColorInputInternal {
     }
 
     this.dirty = true;
+    this.$input.value = this.$host.value;
     this.$host.dispatchEvent(new CustomEvent('change'));
   }
 
@@ -1519,14 +1803,18 @@ class ColorInputInternal {
 
     this.css = new Map(styles);
 
-    const directionChanged   = changed.has(DIRECTION_PROP);
-    const gutterWidthChanged = changed.has(GUTTER_WIDTH_PROP);
-    const highResChanged     = changed.has(HIGH_RES_PROP);
-    const orientationChanged = changed.has(Z_POSITION_PROP);
-    const xDirectionChanged  = changed.has(X_DIRECTION_PROP);
-    const yDirectionChanged  = changed.has(Y_DIRECTION_PROP);
-    const zDirectionChanged  = changed.has(Z_DIRECTION_PROP);
-    const zWidthChanged      = changed.has(Z_WIDTH_PROP);
+    const directionChanged     = changed.has(DIRECTION_PROP);
+    const gutterWidthChanged   = changed.has(GUTTER_WIDTH_PROP);
+    const highResChanged       = changed.has(HIGH_RES_PROP);
+    const inputPositionChanged = changed.has(INPUT_POSITION_PROP);
+    const orientationChanged   = changed.has(Z_POSITION_PROP);
+    const xDirectionChanged    = changed.has(X_DIRECTION_PROP);
+    const yDirectionChanged    = changed.has(Y_DIRECTION_PROP);
+    const zDirectionChanged    = changed.has(Z_DIRECTION_PROP);
+    const zWidthChanged        = changed.has(Z_WIDTH_PROP);
+
+    if (inputPositionChanged)
+      this.setInputPositionFromCSS();
 
     if (orientationChanged || directionChanged)
       this.setOrientationFromCSS(orientationChanged, directionChanged);
@@ -1578,9 +1866,9 @@ class ColorInputInternal {
 
   updateTabIndex() {
     if (this.$host.hasAttribute('tabindex')) {
-      this.$container.removeAttribute('tabindex');
+      this.$outer.removeAttribute('tabindex');
     } else {
-      this.$container.setAttribute('tabindex', '0');
+      this.$outer.setAttribute('tabindex', '0');
     }
   }
 }
@@ -1686,8 +1974,6 @@ class ColorInputElement extends HTMLElement {
     if (this.mode !== (this.getAttribute('mode') || '').toLowerCase().trim()) {
       this.setAttribute('mode', mode.name);
     }
-
-    priv.setLabels();
   }
 
   get value() {

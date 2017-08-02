@@ -1,14 +1,19 @@
-export const CONTAINER_ID = 'CI_CONTAINER';
-export const GUTTER_ID    = 'CI_GUTTER';
-export const XY_CANVAS_ID = 'CI_XY_CANVAS';
-export const XY_ID        = 'CI_XY';
-export const XY_NUB_ID    = 'CI_XY_NUB';
-export const Z_CANVAS_ID  = 'CI_Z_CANVAS';
-export const Z_ID         = 'CI_Z';
-export const Z_NUB_ID     = 'CI_Z_NUB';
+import CSS_COLORS from './css-colors';
+
+export const CONTAINER_ID  = 'CI_CONTAINER';
+export const GUTTER_ID     = 'CI_GUTTER';
+export const OUTER_ID      = 'CI_OUTER';
+export const TEXT_DATA_ID  = 'CI_TEXT_DATA';
+export const TEXT_INPUT_ID = 'CI_TEXT_INPUT';
+export const XY_CANVAS_ID  = 'CI_XY_CANVAS';
+export const XY_ID         = 'CI_XY';
+export const XY_NUB_ID     = 'CI_XY_NUB';
+export const Z_CANVAS_ID   = 'CI_Z_CANVAS';
+export const Z_ID          = 'CI_Z';
+export const Z_NUB_ID      = 'CI_Z_NUB';
 
 export const DEFAULT_GUTTER_WIDTH          = '20px';
-export const DEFAULT_SLIDER_RADIUS         = '15px';
+export const DEFAULT_SLIDER_RADIUS         = '13px';
 export const DEFAULT_Z_AXIS_WIDTH          = '35px';
 export const INITIAL_NUB_MOVEMENT_DURATION = 120;
 
@@ -66,24 +71,35 @@ export default Object.assign(document.createElement('template'), {
       :host {
         contain          : strict;
         display          : block;
-        height           : 230px;
+        height           : 245px;
         width            : 275px;
+      }
+
+      #${ OUTER_ID } {
+        display          : flex;
+        flex-direction   : column;
+        height           : 100%;
+        outline-offset   : -5px; /* will be truncated otherwise */
+        width            : 100%;
+      }
+
+      #${ OUTER_ID }.dragging {
+        cursor           : -webkit-grabbing;
+        cursor           : grabbing;
       }
 
       #${ CONTAINER_ID } {
         box-sizing       : border-box;
         display          : flex;
-        height           : 100%;
+        flex             : 1 0 0;
         left             : 0;
-        outline-offset   : -5px; /* will be truncated otherwise */
         overflow         : hidden;
         padding          : var(
           --color-input-slider-radius, ${ DEFAULT_SLIDER_RADIUS }
         );
-        position         : absolute;
+        position         : relative;
         top              : 0;
         user-select      : none;
-        width            : 100%;
       }
 
       #${ GUTTER_ID } {
@@ -96,6 +112,12 @@ export default Object.assign(document.createElement('template'), {
         height           : 100%;
         transform        : translateZ(0);
         width            : 100%;
+      }
+
+      .dragging #${ XY_CANVAS_ID },
+      .dragging #${ Z_CANVAS_ID } {
+        cursor           : -webkit-grabbing;
+        cursor           : grabbing;
       }
 
       #${ XY_CANVAS_ID } {
@@ -153,7 +175,8 @@ export default Object.assign(document.createElement('template'), {
         ));
         bottom           : 0;
         box-sizing       : border-box;
-        cursor           : pointer;
+        cursor           : -webkit-grab;
+        cursor           : grab;
         height           : calc(2 * var(
           --color-input-slider-radius, ${ DEFAULT_SLIDER_RADIUS }
         ));
@@ -169,9 +192,11 @@ export default Object.assign(document.createElement('template'), {
         ));
       }
 
-      #${ XY_NUB_ID }.dragging,
-      #${ Z_NUB_ID }.dragging {
-        transform: none;
+      .dragging-xy #${ XY_NUB_ID },
+      .dragging-z #${ Z_NUB_ID } {
+        cursor           : -webkit-grabbing;
+        cursor           : grabbing;
+        transform        : none;
       }
 
       #${ XY_NUB_ID }.initial-movement,
@@ -196,33 +221,96 @@ export default Object.assign(document.createElement('template'), {
           --color-input-slider-radius, ${ DEFAULT_SLIDER_RADIUS }
         ));
       }
+
+      #${ TEXT_INPUT_ID } {
+        margin           : var(
+          --color-input-slider-radius, ${ DEFAULT_SLIDER_RADIUS }
+        );
+        margin-top       : calc(
+          var(--color-input-gutter-width, ${ DEFAULT_GUTTER_WIDTH }) -
+          var(--color-input-slider-radius, ${ DEFAULT_SLIDER_RADIUS })
+        );
+        speak-as         : spell-out no-punctuation; /* not yet supported? */
+
+        /* Proxied vars where no default value works fine */
+        border-color     : var(--color-input-field-border-color);
+        border-radius    : var(--color-input-field-border-radius);
+        height           : var(--color-input-field-height);
+        letter-spacing   : var(--color-input-field-letter-spacing);
+        text-align       : var(--color-input-field-text-align);
+        text-shadow      : var(--color-input-field-text-shadow);
+
+        /* Proxied vars that need a default or else they behave like unset... */
+        /* ...it seems a bit arbitrary, is this not some sort of bug?         */
+        /* As with outline above, we need to include the webkit defaults      */
+        /* explicitly, which is okay as a stopgap, but presents a problem in  */
+        /* the long term...                                                   */
+
+        background       : var(--color-input-field-background, white);
+        border-style     : var(--color-input-field-border-style, inset);
+        border-width     : var(--color-input-field-border-width, 2px);
+        color            : var(--color-input-field-color, initial);
+        font             : var(--color-input-field-font, 11px system-ui);
+        padding          : var(--color-input-field-padding, 1px);
+
+        -webkit-appearance: var(
+          --color-input-field-webkit-appearance, textfield
+        );
+      }
+
+      #${ TEXT_INPUT_ID }:focus {
+        outline          : var(
+          --color-input-field-focus-outline,
+          -webkit-focus-ring-color auto 5px
+        );
+        outline-offset   : var(--color-input-field-focus-outline-offset, 0px);
+      }
+
+      .dragging #${ TEXT_INPUT_ID } {
+        cursor           : -webkit-grabbing;
+        cursor           : grabbing;
+      }
     </style>
 
+    <datalist id="${ TEXT_DATA_ID }">
+      ${ CSS_COLORS.map(name => `<option value="${ name }">`) }
+    </datalist>
+
     <div
-      id="${ CONTAINER_ID }"
+      id="${ OUTER_ID }"
       tabindex="0">
 
-      <div id="${ XY_ID }">
-        <canvas
-          height="0"
-          id="${ XY_CANVAS_ID }"
-          tabindex="0"
-          width="0">
-        </canvas>
-        <div id="${ XY_NUB_ID }"></div>
+      <div
+        aria-hidden="true"
+        id="${ CONTAINER_ID }">
+
+        <div id="${ XY_ID }">
+          <canvas
+            height="0"
+            id="${ XY_CANVAS_ID }"
+            tabindex="0"
+            width="0">
+          </canvas>
+          <div id="${ XY_NUB_ID }"></div>
+        </div>
+
+        <div id="${ GUTTER_ID }"></div>
+
+        <div id="${ Z_ID }">
+          <canvas
+            height="0"
+            id="${ Z_CANVAS_ID }"
+            tabindex="0"
+            width="0">
+          </canvas>
+          <div id="${ Z_NUB_ID }"></div>
+        </div>
       </div>
 
-      <div id="${ GUTTER_ID }"></div>
-
-      <div id="${ Z_ID }">
-        <canvas
-          height="0"
-          id="${ Z_CANVAS_ID }"
-          tabindex="0"
-          width="0">
-        </canvas>
-        <div id="${ Z_NUB_ID }"></div>
-      </div>
+      <input
+        id="${ TEXT_INPUT_ID }"
+        list="${ TEXT_DATA_ID }"
+        type="text">
     </div>
   `
 });

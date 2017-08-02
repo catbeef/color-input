@@ -103,8 +103,6 @@ class ColorInputElement extends HTMLElement {
     if (this.mode !== (this.getAttribute('mode') || '').toLowerCase().trim()) {
       this.setAttribute('mode', mode.name);
     }
-
-    priv.setLabels();
   }
 
   get value() {

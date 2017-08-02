@@ -110,7 +110,9 @@
 
   <div class="demo">
     <div class="demo-example">
-      <color-input id="COLOR_INPUT" value="goldenrod">
+      <color-input
+        id="COLOR_INPUT"
+        value="goldenrod">
       </color-input>
     </div>
 
@@ -280,8 +282,8 @@
         <label>
           <code>height</code>
           <select id="INPUT_HEIGHT">
-            <option value="100px">100px</option>
-            <option value="230px" selected>230px [default]</option>
+            <option value="120px">120px</option>
+            <option value="245px" selected>245px [default]</option>
             <option value="300px">300px</option>
             <option value="100%">100%</option>
           </select>
@@ -294,6 +296,15 @@
             <option value="275px" selected>275px [default]</option>
             <option value="350px">300px</option>
             <option value="100%">100%</option>
+          </select>
+        </label>
+
+        <label>
+          <code>--color-input-field-position</code>
+          <select id="INPUT_FIELD_POSITION">
+            <option value="top">top</option>
+            <option value="bottom" selected>bottom [default]</option>
+            <option value="none">none [still vis. to screenreaders]</option>
           </select>
         </label>
 
@@ -346,6 +357,7 @@
   {
     const $clampInput    = document.getElementById('INPUT_CLAMP');
     const $colorInput    = document.getElementById('COLOR_INPUT');
+    const $fieldPosInput = document.getElementById('INPUT_FIELD_POSITION');
     const $gutterInput   = document.getElementById('INPUT_GUTTER_WIDTH');
     const $heightInput   = document.getElementById('INPUT_HEIGHT');
     const $highResInput  = document.getElementById('INPUT_HIGH_RES');
@@ -374,6 +386,12 @@
 
     $clampInput.addEventListener('change', () =>
       $colorInput.setAttribute('clamp', $clampInput.value)
+    );
+
+    $fieldPosInput.addEventListener('change', () =>
+      $colorInput
+        .style
+        .setProperty('--color-input-field-position', $fieldPosInput.value)
     );
 
     $gutterInput.addEventListener('change', () =>
