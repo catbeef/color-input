@@ -1,11 +1,12 @@
 >  _alpha version — still working on testing accessibility and adding form_
 >  _related behaviors, etc_
 
-# \<color-input\>
+# \<color-input>
 
 A custom HTML element ("web component") like `<input type="color">` but with
 additional features, configurability and styling options, including support for
-HCL and other color space modes.
+HCL and other color space modes and text input of values other than hex
+notation.
 
 ![example in "hlc" mode](example-hlc.png)
 
@@ -19,11 +20,11 @@ There is a [demo page](example.html) — but be aware this will currently only w
     - [Unsupported](#unsupported)
   - [About Web Components and Forms](#about-web-components-and-forms)
   - [Performance](#performance)
-- [Usage](#usage)
+- [Library Usage](#library-usage)
   - [ES Module](#es-module)
   - [Common JS Module](#common-js-module)
   - [Script](#script)
-- [Content Attributes](#content-attributes)
+- [HTML Content Attributes](#html-content-attributes)
   - [The `mode` Attribute](#the-mode-attribute)
   - [The `clamp` Attribute](#the-clamp-attribute)
 - [IDL Attributes](#idl-attributes)
@@ -36,12 +37,13 @@ There is a [demo page](example.html) — but be aware this will currently only w
     - [ColorInputElement.prototype.hsv](#colorinputelementprototypehsv)
     - [ColorInputElement.prototype.lab](#colorinputelementprototypelab)
     - [ColorInputElement.prototype.rgb](#colorinputelementprototypergb)
+    - [ColorInputElement.registerLanguage\(langCode, definition\)](#colorinputelementregisterlanguagelangcode-definition)
 - [Events](#events)
-- [Accessibility](#accessibility)
 - [CSS Properties](#css-properties)
   - [`--color-input-field-position`](#--color-input-field-position)
   - [`--color-input-gutter-width`](#--color-input-gutter-width)
   - [`--color-input-high-res`](#--color-input-high-res)
+  - [`--color-input-label-visibility`](#--color-input-label-visibility)
   - [`--color-input-slider-radius`](#--color-input-slider-radius)
   - [`--color-input-slider-scale`](#--color-input-slider-scale)
   - [`--color-input-x-axis-direction`](#--color-input-x-axis-direction)
@@ -49,7 +51,14 @@ There is a [demo page](example.html) — but be aware this will currently only w
   - [`--color-input-z-axis-direction`](#--color-input-z-axis-direction)
   - [`--color-input-z-axis-position`](#--color-input-z-axis-position)
   - [`--color-input-z-axis-width`](#--color-input-z-axis-width)
-    - [Additional CSS Properties](#additional-css-properties)
+  - [Additional CSS Properties](#additional-css-properties)
+- [Accessibility](#accessibility)
+  - [Input Labeling](#input-labeling)
+  - [Keyboard Usage](#keyboard-usage)
+  - [Text Input for Screen Readers](#text-input-for-screen-readers)
+  - [Language](#language)
+  - [Challenges](#challenges)
+    - [Conflicts Between Different User Needs](#conflicts-between-different-user-needs)
 - [ColorInputFormControlElement](#colorinputformcontrolelement)
 
 <!-- /MarkdownTOC -->
@@ -129,9 +138,10 @@ LAB at 60FPS (i.e., it takes less than 16ms), but at larger sizes, in high res
 mode, or on a less powerful machine, the xy plane framerate may drop.
 
 To address this in the future I might try to do a little WASMing — seems to fit
-the spirit of this "latest DOM tech" exploration project.
+the spirit of this "latest DOM tech" exploration project — though I’m unsure if
+it will actually lead to a significant difference.
 
-## Usage
+## Library Usage
 
 There are several artifacts to choose from. The first two options give you finer
 control, but regardless of which you use, once the element is registered you can
@@ -159,7 +169,7 @@ You can also load `dist/index.iife.js` or `dist/index.iife.min.js` with a
 script element. In this case, there’s nothing to export; registration will be
 automatic.
 
-## Content Attributes
+## HTML Content Attributes
 
 Most of the content attributes (aka html attributes) mirror those of `<input>`
 where applicable:
@@ -302,39 +312,74 @@ actually in; these are always available.
 - `ColorInputElement.prototype.rgb.g`: 0 to 255 (green)
 - `ColorInputElement.prototype.rgb.b`: 0 to 255 (blue)
 
+#### ColorInputElement.registerLanguage(langCode, definition)
+
+It is possible to define languages for use with aria properties using this
+static method. The `langCode` argument is a string like `en` or `en-GB`. If you
+define a language with the suffix and one without the suffix already exists, it
+will extend the unsuffixed version if any values are missing. Otherwise all of
+the fields in `definition` must be defined.
+
+See [Accessibility > Language](#language) for more info.
+
+##### Language Definition: Axis Label Fields
+
+These are the words or phrases corresponding to the axes of the various color
+models. Note that while 'luminosity' is traditionally used for the 'L' of 'HSL',
+it’s not considered particularly accurate; in general not all languages will
+have distinct words for the meanings of 'L' in HCL, LAB, and HSL like English
+does (unsurprising, since the distinctions are more technical than not).
+
+- `lang.blue`
+- `lang.blueToYellow`
+- `lang.chroma`
+- `lang.green`
+- `lang.hue`
+- `lang.lightness`
+- `lang.luminance`
+- `lang.luminosity`
+- `lang.red`
+- `lang.redToGreen`
+- `lang.saturation`
+- `lang.value`
+
+##### Language Definition: Direction and Instructional Fields
+
+For the XY plane, for which no corresponding aria role exists, we need to fill
+the hole with instructions about keyboard input. Thus for HCL we would compose
+this like "hue (left and right), chroma (up and down)".
+
+- `lang.leftAndRight` ("left and right", in the sense of arrow keys)
+- `lang.upAndDown` ("up and down", in the sense of arrow keys)
+
+The 'prefix' is a default label to use if one was not expressly provided. It
+will appear before the instructions for the individual input elements. The
+'instruction' is the hairiest bit because it’s got more hefty grammar in it:
+a higher level explanation of what the next three focusable elements are.
+
+- `lang.instruction` ("two arrow-key based inputs and a text input")
+- `lang.prefix` ("select color")
+
+##### Language Definition: Autocomplete Colors for Text Input
+
+Each language should include an array of colors in the form `[ value, label ]`.
+This array is used to outfit the autocomplete choices for the text field; since
+this is mainly to make color input less of a nuisance for screen reader users,
+the intention is that the lists be small and should favor simple, common color
+names that would be readily discovered by autocomplete. The value string can be
+in any color notation. The set of colors is open-ended because what constitutes
+"basic colors" varies by language.
+
+The text input also supports arbitrary hex, `rgb()`, etc strings.
+
+- `lang.colors` (`[ [ '#000000', 'black' ], ... ]`)
+
 > \* Note that the 'hue' of HCL is not equivalent to the 'hue' of HSL and HSV.
 
 ## Events
 
 Only one event is fired, 'change', when the value changes. You can access the
 new value as `event.target.value`.
-
-## Accessibility
-
-For users who cannot use the mouse (or users who want a bit of finer control),
-when the X/Y or Z members are focused, the keyboard arrow keys nudge the value
-in the appropriate direction. If the shift key is depressed, the nudge interval
-will be larger.
-
-The element also includes a text-based input. It is visible by default, but this
-can be controlled via CSS (see below) — however, even if made invisible, it will
-continue to be available to screen readers. The visual color input is hidden
-from screen readers — even if there were an appropriate aria role for a
-continuous xy plane and we decked it out with descriptions, I’m pretty sure most
-users employing screen readers wouldn’t have a fun time with instructions like
-"adjust the chroma of the color with the up and down arrows". It seemed like
-the best UX path was to make the text input as friendly as possible instead.
-
-Unlike most text-based color inputs, it is not restricted to RGB hex notation.
-It can accept any CSS color notation, and it will auto-suggest css color
-keywords — it’s my hope anyway that this will make selecting a color less of a
-nuisance for people who _probably_ couldn’t care less most of the time.
-
-Note that it’s up to you to supply a `<label>` element. To do so, use the
-nesting form, not the `for`/`id` form — I’m not sure if there’s any way to to
-support the latter because of the nature of custom elements and shadow dom.
-
-> NB: I’m still testing this functionality and working out kinks.
 
 ## CSS Properties
 
@@ -368,12 +413,27 @@ mode, the resolution of the output is determined by the device pixel ratio of
 the client.
 
 The default is `false` (not `auto`) because in general you’re not very likely to
-want this on: because the visuals are all smooth gradations of color, the extra
-resolution does not contribute much to what the output looks like. Meanwhile the
-cost of high res is quite high, since it multiplies the number of pixels values
-to calculate by four. Especially in HCL and LAB modes, which are more
-computationally expensive, I would not recommend enabling this unless the color
-input is quite small to begin with.
+want this on. The reason is that most of the visuals are smooth gradations of
+color anyway, so the extra resolution does not contribute much at all to how the
+output looks. Meanwhile the cost of high res is quite high, since it multiplies
+the number of pixel values to calculate by four. That cost is more likely to
+become noticeable during dragging in HCL and LAB modes, which are more
+computationally expensive. However, when `clamp` is set to false in HCL or LAB,
+you may want to also set resolution to auto, because the edges of the color
+space may otherwise appear jagged.
+
+I would not recommend enabling this unless the color input is at the default
+size or smaller.
+
+### `--color-input-label-visibility`
+
+The possible values are `visible` and `none` (default). This determines whether
+the label appears beside the text input visually, and therefore only has an
+effect if `--color-input-field-position` is not `none`. The label in question is
+that provided through `aria-label`; for more details on issues that come up with
+labeling in custom elements, see [input labelling](#input-labeling), but the
+tldr is that only `aria-label` is respected, so I’ve allowed it to be
+potentially visible as well.
 
 ### `--color-input-slider-radius`
 
@@ -415,7 +475,7 @@ if present, "cuts into" both the plane and the slider; thus a
 area given to the z-axis would end up being 50% less 5px, such that the plane
 and slider would end up equal in size as one would expect for such a value.
 
-#### Additional CSS Properties
+### Additional CSS Properties
 
 There are quite a few additional properties available for more granular styling.
 This is a best-effort at enabling high customization within the constraints of
@@ -478,6 +538,128 @@ it will be redundant for screen readers).
 - `--color-input-z-focus-outline`
 
 These six properties are specific to the `:focus` states of the three elements.
+
+## Accessibility
+
+Making a complex color input accessible by keyboard is easy, but making it
+accessible to screen readers is pretty tough — especially with custom elements.
+
+The color input itself is focusable, and its shadow contains three focusable
+descendents:
+
+- the xy plane
+- the z axis slider
+- a conventional text input
+
+### Input Labeling
+
+A current limitation of custom elements (which perhaps will be addressed once
+elements can be declared as form elements) is that they can’t support either of
+these forms of labelling normally:
+
+    <label>Foo <color-input></color-input></label>
+    <label for="foo">Foo</label> <color-input id="foo"></color-input>
+
+However `aria-label` will work correctly. In addition, though it’s a bit of a
+semantic stretch, you can make the `aria-label` into a visible element (which
+will appear beside the text input) using the css
+`--color-input-label-visibility: visible`.
+
+### Keyboard Usage
+
+For users who cannot use a mouse (or any users who want a bit of finer control),
+when the first two members are focused, the keyboard arrow keys nudge the value
+in the appropriate direction. If the shift key is depressed, the nudge interval
+will be larger.
+
+### Text Input for Screen Readers
+
+The text input, which is always available to screen readers even if not visually
+displayed (configurable through CSS), supports any CSS color notation but also a
+list of simple color names, which will be available as autocomplete options. My
+hope was that this might make it a better experience for screen reader users
+than having to enter hex notation. More on this stuff follows.
+
+### Language
+
+Since the screen reader solution requires (generated) interior labelling and
+messaging, there needed to be a mechanism for using the correct language for a
+given document / user. Included are Arabic, German, English, Spanish, French,
+Japanese, Portuguese, Russian and Chinese — nine of the ten most common
+languages on the Internet (Malay proved too challenging for me). The word lists
+are simple, mostly just single noun labels like "lightness"; there’s very little
+grammar so this wasn’t as hard as it might have been, but I still likely
+butchered some stuff.
+
+The language preferred will be that of the _agent_ (typically the user’s system
+language) not that of the document or element context.
+
+See [ColorInputElement.registerLanguage](#colorinputelementregisterlanguagelangcode-definition)
+for information about defining additional languages.
+
+### Challenges
+
+I want to document some of the challenges I encountered in case it is useful to
+other people, or in case somebody who reads this knows a better way to handle
+some of this stuff.
+
+We can say there are three potential usage patterns: visual with mouse, visual
+with arrow keys, and text input. A motor-impaired user might be restricted to
+the latter two and a visually impaired user might best be served if presented
+with only the third.
+
+The last of these may be disabled visually, but will continue to be available to
+screen readers. The first two support interaction via mouse or keyboard.
+
+#### Conflicts Between Different User Needs
+
+When I went down the accessibility rabbit hole, once I started mucking about
+with real screen readers it became evident that I needed to provide internal
+labeling for the xy & z inputs. My earlier plan had been to just make them
+`aria-hidden` and expose only the text input to screen readers, since it seems
+reasonable to say that most users of screen readers probably don’t want to muck
+about with stuff like "chroma sliders". But what I learned is that neither
+`aria-hidden` nor `role: presentation` will be respected if an element is
+focusable. That is, they don’t actually cause subtrees to be removed from the
+access tree, so the elements remain navigable.
+
+There’s a fair amount of discussion about this online and while the current
+behavior seems unfortunate to me, it’s understandably a complex issue to solve,
+because tab order and focus happens in the DOM, not in the assistive tech; even
+if the assistive tech took over tab order, there remains the weird hole that if
+a user did use the mouse to select such an element, we’re now in some super
+weird state where an element that "doesn’t exist" has focus.
+
+So what happens if you just let it be? When you tab through, a screen reader
+will announce that they are "blank":
+
+| Tab             | Screen reader sez...       |
+|-----------------|----------------------------|
+| _initial focus_ | "Select color"             |
+| _tab 1_         | "blank"                    |
+| _tab 2_         | "blank"                    |
+| _tab 3_         | "Select color: text input" |
+
+To me that felt like a shitty experience. If I could use `tabindex="-1"` for the
+first two components, it could be avoided — but that isn’t an option because it
+would be no good for people with motor disabilities, who should be able to reach
+the plane/slider without clicking. Gah! The more I looked at this stuff the more
+I realized how weird it is that we have no way to address distinctions between
+user needs like this, but again, I guess it’s a pretty complex problem.
+
+So I figured I needed to bite the bullet and label the xy & z components. Both
+were already keyboard accessible, so even if these input options are of
+questionable value to the average screen reader user, ultimately it came down to
+adding appropriate labelling and messaging. The z slider has the advantage of
+already having a suitable aria role, so the messaging is partly taken care of
+for us just by using the right aria attributes, but there is no role appropriate
+for a continuous plane, meaning we need to hand-roll the messaging.
+
+And then ... well, that’s when it really became a rabbit hole. Generating labels
+and messaging for these controls means we’re now in the realm of human language.
+As it turns out, there’s more than one of those. I ended up baking in nine
+common languages (the text corpus is small, so this seemed reasonable) and
+providing an interface for defining others.
 
 ## ColorInputFormControlElement
 

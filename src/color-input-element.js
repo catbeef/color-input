@@ -1,57 +1,11 @@
 import ColorInputInternal from './color-input-internal';
 import color              from './color';
+import colorAccess        from './color-access';
+
+import { registerLanguage } from './color-language';
 import { cssColorStringToRGB, rgbToHexString } from './parse-color';
 
-const PRIVATE = new WeakMap();
-
-const colorAccess = (mode, [ xMin, xMax ], [ yMin, yMax ], [ zMin, zMax ]) => {
-  const [ x, y, z ] = mode.name;
-
-  const members = [ [ x, xMin, xMax ], [ y, yMin, yMax ], [ z, zMin, zMax ] ];
-
-  const accessObj = priv => Object.create(
-    Object.prototype,
-    members.reduce((acc, [ key, min, max ], index) => {
-      const size = max - min;
-
-      acc[key] = {
-        get() {
-          if (priv.hasValue) {
-            const value = mode.fromRGB(...priv.selectionAsRGB())[index];
-            return (value * max) - min;
-          }
-        },
-        set(val) {
-          val = Number(val);
-          val = Number.isFinite(val) ? val : 0;
-          val = Math.min(max, Math.max(min, val)) + min;
-
-          const xyz = mode.fromRGB(...priv.selectionAsRGB());
-          const buf = new Uint8ClampedArray(3);
-
-          xyz[index] = val / size;
-          mode.write(buf, 0, ...xyz);
-
-          priv.$host.value = rgbToHexString(Array.from(buf));
-        }
-      };
-
-      return acc;
-    }, {})
-  );
-
-  return {
-    get() {
-      const priv = PRIVATE.get(this);
-
-      if (!priv.colorAccess.has(mode)) {
-        priv.colorAccess.set(mode, accessObj(priv));
-      }
-
-      return priv.colorAccess.get(mode);
-    }
-  };
-};
+export const PRIVATE = new WeakMap();
 
 class ColorInputElement extends HTMLElement {
   constructor() {
@@ -98,6 +52,8 @@ class ColorInputElement extends HTMLElement {
 
     priv.mode = mode;
 
+    priv.updateLabels();
+
     priv.setSelectionFromRGB(rgb);
 
     if (this.mode !== (this.getAttribute('mode') || '').toLowerCase().trim()) {
@@ -122,12 +78,10 @@ class ColorInputElement extends HTMLElement {
 
     if (rgb) {
       priv.setSelectionFromRGB(rgb);
-      priv.hasValue = true;
+      priv.signalChange();
     } else {
-      priv.hasValue = false;
+      priv.signalChange(true);
     }
-
-    priv.signalChange();
   }
 
   get valueAsNumber() {
@@ -169,6 +123,9 @@ class ColorInputElement extends HTMLElement {
     current = current === 'true' || (current === 'false' ? false : current);
 
     switch (attrKey) {
+      case 'aria-label':
+        PRIVATE.get(this).updateLabels();
+        return;
       case 'clamp':
         this.clamp = current;
         return;
@@ -198,21 +155,25 @@ class ColorInputElement extends HTMLElement {
 Object.defineProperties(ColorInputElement, {
   observedAttributes: {
     value: Object.freeze([
+      'aria-label',
       'clamp',
       'mode',
       'name',
       'tabindex',
       'value'
     ])
+  },
+  registerLanguage: {
+    value: registerLanguage
   }
 });
 
 Object.defineProperties(ColorInputElement.prototype, {
-  hcl: colorAccess(color.hcl, [ 0, 360 ], [ 0, 134 ], [ 0, 100 ]),
-  hsl: colorAccess(color.hsl, [ 0, 360 ], [ 0, 100 ], [ 0, 100 ]),
-  hsv: colorAccess(color.hsv, [ 0, 360 ], [ 0, 100 ], [ 0, 100 ]),
-  lab: colorAccess(color.lab, [ 0, 100 ], [ -110, 110 ], [ -110, 110 ]),
-  rgb: colorAccess(color.rgb, [ 0x00, 0xFF ], [ 0x00, 0xFF ], [ 0x00, 0xFF ])
+  hcl: colorAccess(color.hcl),
+  hsl: colorAccess(color.hsl),
+  hsv: colorAccess(color.hsv),
+  lab: colorAccess(color.lab),
+  rgb: colorAccess(color.rgb)
 });
 
 Object.freeze(ColorInputElement);

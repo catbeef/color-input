@@ -1,10 +1,12 @@
 import color from './color';
 
+import { getLanguage } from './color-language';
 import { cssColorStringToRGB, rgbToHexString } from './parse-color';
 
 import template, {
-  CONTAINER_ID, GUTTER_ID, OUTER_ID, TEXT_INPUT_ID,
-  XY_CANVAS_ID, XY_ID, XY_NUB_ID,
+  CONTAINER_ID, DESC_ID, GUTTER_ID, OUTER_ID,
+  TEXT_DATA_ID, TEXT_INPUT_ID, TEXT_INPUT_LABEL_ID, TEXT_INPUT_ROW_ID,
+  XY_ALERT_ID, XY_CANVAS_ID, XY_ID, XY_NUB_ID,
   Z_CANVAS_ID, Z_ID, Z_NUB_ID,
   DEFAULT_GUTTER_WIDTH, DEFAULT_Z_AXIS_WIDTH,
   INITIAL_NUB_MOVEMENT_DURATION
@@ -14,32 +16,35 @@ const ARROW_KEYS = new Set([
   'ArrowDown', 'ArrowLeft', 'ArrowRight', 'ArrowUp'
 ]);
 
-const DIRECTION_PROP      = 'direction';
-const GUTTER_WIDTH_PROP   = '--color-input-gutter-width';
-const HIGH_RES_PROP       = '--color-input-high-res';
-const INPUT_POSITION_PROP = '--color-input-field-position';
-const X_DIRECTION_PROP    = '--color-input-x-axis-direction';
-const Y_DIRECTION_PROP    = '--color-input-y-axis-direction';
-const Z_DIRECTION_PROP    = '--color-input-z-axis-direction';
-const Z_POSITION_PROP     = '--color-input-z-axis-position';
-const Z_WIDTH_PROP        = '--color-input-z-axis-width';
+const DIRECTION_PROP        = 'direction';
+const GUTTER_WIDTH_PROP     = '--color-input-gutter-width';
+const HIGH_RES_PROP         = '--color-input-high-res';
+const INPUT_POSITION_PROP   = '--color-input-field-position';
+const LABEL_VISIBILITY_PROP = '--color-input-label-visibility';
+const X_DIRECTION_PROP      = '--color-input-x-axis-direction';
+const Y_DIRECTION_PROP      = '--color-input-y-axis-direction';
+const Z_DIRECTION_PROP      = '--color-input-z-axis-direction';
+const Z_POSITION_PROP       = '--color-input-z-axis-position';
+const Z_WIDTH_PROP          = '--color-input-z-axis-width';
 
-const DEFAULT_AXIS_DIRECTION = 'ascending';
-const DEFAULT_DIRECTION      = 'ltr';
-const DEFAULT_INPUT_POSITION = 'bottom';
-const DEFAULT_RESOLUTION     = 'false';
-const DEFAULT_Z_POSITION     = 'end';
+const DEFAULT_AXIS_DIRECTION   = 'ascending';
+const DEFAULT_DIRECTION        = 'ltr';
+const DEFAULT_INPUT_POSITION   = 'bottom';
+const DEFAULT_LABEL_VISIBILITY = 'none';
+const DEFAULT_RESOLUTION       = 'false';
+const DEFAULT_Z_POSITION       = 'end';
 
 const CSS_PROPERTIES = [
-  [ DIRECTION_PROP,      DEFAULT_DIRECTION      ],
-  [ GUTTER_WIDTH_PROP,   DEFAULT_GUTTER_WIDTH   ],
-  [ HIGH_RES_PROP,       DEFAULT_RESOLUTION     ],
-  [ INPUT_POSITION_PROP, DEFAULT_INPUT_POSITION ],
-  [ X_DIRECTION_PROP,    DEFAULT_AXIS_DIRECTION ],
-  [ Y_DIRECTION_PROP,    DEFAULT_AXIS_DIRECTION ],
-  [ Z_DIRECTION_PROP,    DEFAULT_AXIS_DIRECTION ],
-  [ Z_POSITION_PROP,     DEFAULT_Z_POSITION     ],
-  [ Z_WIDTH_PROP,        DEFAULT_Z_AXIS_WIDTH   ]
+  [ DIRECTION_PROP,        DEFAULT_DIRECTION        ],
+  [ GUTTER_WIDTH_PROP,     DEFAULT_GUTTER_WIDTH     ],
+  [ HIGH_RES_PROP,         DEFAULT_RESOLUTION       ],
+  [ INPUT_POSITION_PROP,   DEFAULT_INPUT_POSITION   ],
+  [ LABEL_VISIBILITY_PROP, DEFAULT_LABEL_VISIBILITY ],
+  [ X_DIRECTION_PROP,      DEFAULT_AXIS_DIRECTION   ],
+  [ Y_DIRECTION_PROP,      DEFAULT_AXIS_DIRECTION   ],
+  [ Z_DIRECTION_PROP,      DEFAULT_AXIS_DIRECTION   ],
+  [ Z_POSITION_PROP,       DEFAULT_Z_POSITION       ],
+  [ Z_WIDTH_PROP,          DEFAULT_Z_AXIS_WIDTH     ]
 ];
 
 const LUMINANCE_OFFSET     = 4 / 7;
@@ -69,10 +74,15 @@ class ColorInputInternal {
 
     this.$host      = host;
     this.$container = tree.getElementById(CONTAINER_ID);
+    this.$datalist  = tree.getElementById(TEXT_DATA_ID);
+    this.$desc      = tree.getElementById(DESC_ID);
     this.$gutter    = tree.getElementById(GUTTER_ID);
     this.$input     = tree.getElementById(TEXT_INPUT_ID);
+    this.$inputRow  = tree.getElementById(TEXT_INPUT_ROW_ID);
+    this.$label     = tree.getElementById(TEXT_INPUT_LABEL_ID);
     this.$outer     = tree.getElementById(OUTER_ID);
     this.$xy        = tree.getElementById(XY_ID);
+    this.$xyAlert   = tree.getElementById(XY_ALERT_ID);
     this.$xyCanvas  = tree.getElementById(XY_CANVAS_ID);
     this.$xyNub     = tree.getElementById(XY_NUB_ID);
     this.$z         = tree.getElementById(Z_ID);
@@ -93,9 +103,13 @@ class ColorInputInternal {
     // sets that value. The _deregs array holds event listener dereg functions
     // that should be called on disconnection.
 
+    this.barePercent = undefined;
     this.colorAccess = new Map();
+    this.degrees     = undefined;
+    this.lang        = undefined;
     this.mode        = color.hlc;
     this.noClamp     = false;
+    this.percent     = undefined;
     this._deregs     = new Set();
     this._raf        = undefined;
     this._grabStyle  = undefined;
@@ -140,6 +154,7 @@ class ColorInputInternal {
     this.highResAuto   = window.devicePixelRatio > 1;
     this.horizontal    = true;
     this.inputPosition = DEFAULT_INPUT_POSITION;
+    this.labelVisible  = false;
     this.xDescending   = false;
     this.yDescending   = false;
     this.zDescending   = false;
@@ -174,44 +189,19 @@ class ColorInputInternal {
     // each RAF. The transient x y and z properties describe the current
     // “uncommitted” value, that is, during active dragging, before a mouseup.
 
-    this._dragging   = false;
-    this._renderXY   = true;
-    this._renderZ    = true;
-    this._transientX = undefined;
-    this._transientY = undefined;
-    this._transientZ = undefined;
+    this._dragging      = false;
+    this._renderXY      = true;
+    this._renderZ       = true;
+    this._terminateDrag = undefined;
+    this._transientX    = undefined;
+    this._transientY    = undefined;
+    this._transientZ    = undefined;
+    this._xyMouseDown   = undefined;
+    this._zMouseDown    = undefined;
 
     // BOOTSTRAPPING ///////////////////////////////////////////////////////////
 
     shadow.append(tree);
-  }
-
-  get effectiveX() {
-    return this._transientX !== undefined ? this._transientX : this.xAxisValue;
-  }
-
-  get effectiveY() {
-    return this._transientY !== undefined ? this._transientY : this.yAxisValue;
-  }
-
-  get effectiveZ() {
-    return this._transientZ !== undefined ? this._transientZ : this.zAxisValue;
-  }
-
-  get xyHeight() {
-    return this.highRes ? this.$xyCanvas.height / 2 : this.$xyCanvas.height;
-  }
-
-  get xyWidth() {
-    return this.highRes ? this.$xyCanvas.width / 2 : this.$xyCanvas.width;
-  }
-
-  get zHeight() {
-    return this.highRes ? this.$zCanvas.height / 2 : this.$zCanvas.height;
-  }
-
-  get zWidth() {
-    return this.highRes ? this.$zCanvas.width / 2 : this.$zCanvas.width;
   }
 
   addGrab() {
@@ -224,15 +214,15 @@ class ColorInputInternal {
     document.head.appendChild(this._grabStyle);
   }
 
-  removeGrab() {
-    if (this._grabStyle) {
-      this._grabStyle.remove();
-    }
-  }
-
   connect() {
     this._rafFn();
-    this.listen();
+    this.listenForFocus();
+    this.listenForInput();
+    this.listenForKeyboard();
+    this.listenForMouseDownOnCanvas();
+    this.listenForMouseDownOnNubs();
+    this.listenForLanguage();
+    this.updateLabels();
   }
 
   disconnect() {
@@ -252,200 +242,89 @@ class ColorInputInternal {
     return buffer;
   }
 
-  listen() {
-    let _terminateDrag, xyTimeout, zTimeout;
+  getGraceZone() {
+    return Number.parseFloat(window.getComputedStyle(this.$container).padding);
+  }
 
-    const xyMouseDown = event => {
-      clearTimeout(xyTimeout);
+  getLabelXY(prefix) {
+    return (
+      `${ prefix }: ` +
+      `${ this.xWord } (${ this.lang.leftAndRight }), ` +
+      `${ this.yWord } (${ this.lang.upAndDown })`
+    );
+  }
 
-      this.setXYTentativelyFromEvent(event);
-      this._dragging = true;
-      this.$outer.classList.add('dragging', 'dragging-xy');
-      this.$xyNub.classList.add('initial-movement');
-      this.addGrab();
+  getLabelZ(prefix) {
+    return `${ prefix }: ${ this.zWord }`;
+  }
 
-      xyTimeout = setTimeout(
-        () => this.$xyNub.classList.remove('initial-movement'),
-        INITIAL_NUB_MOVEMENT_DURATION
-      );
+  inGraceZone(clientX, clientY, $canvas) {
+    const { bottom, left, right, top } = $canvas.getBoundingClientRect();
 
-      const terminateDrag = () => {
-        document.removeEventListener('blur', terminateDrag);
-        document.removeEventListener('mousemove', mousemove);
-        document.removeEventListener('mouseup', mouseup);
+    const graceZone = this.getGraceZone();
 
-        this.removeGrab();
+    return (
+      clientX + graceZone >= left &&
+      clientX - graceZone <= right &&
+      clientY + graceZone >= top &&
+      clientY - graceZone <= bottom
+    );
+  }
 
-        this.$xyCanvas.removeEventListener('blur', terminateDrag);
-
-        this.$outer.classList.remove('dragging', 'dragging-xy');
-        this._deregs.delete(terminateDrag);
-
-        this._dragging   = false;
-        this._renderZ    = true;
-        this._transientX = undefined;
-        this._transientY = undefined;
-
-        _terminateDrag = undefined;
-      };
-
-      const mousemove = ({ clientX, clientY }) => {
-        const { bottom, left, right, top } =
-          this.$xyCanvas.getBoundingClientRect();
-
-        const offsetX = Math.min(Math.max(left, clientX), right) - left;
-        const offsetY = Math.min(Math.max(top, clientY), bottom) - top;
-
-        this.setXYTentativelyFromEvent({ offsetX, offsetY });
-      };
-
-      const mouseup = ({ clientX, clientY }) => {
-        const { bottom, left, right, top } =
-          this.$container.getBoundingClientRect();
-
-        const graceZone =
-          Number.parseFloat(window.getComputedStyle(this.$container).padding);
-
-        const isSelection =
-          clientX + graceZone >= left &&
-          clientX - graceZone <= right &&
-          clientY + graceZone >= top &&
-          clientY - graceZone <= bottom;
-
-        if (isSelection) {
-          this.xAxisValue = this._transientX;
-          this.yAxisValue = this._transientY;
-          this._renderZ   = true;
-          this.signalChange();
-        }
-
-        terminateDrag();
-      };
-
-      document.addEventListener('blur', terminateDrag);
-      document.addEventListener('mousemove', mousemove);
-      document.addEventListener('mouseup', mouseup);
-
-      this.$xyCanvas.addEventListener('blur', terminateDrag);
-
-      _terminateDrag = terminateDrag;
-
-      this._deregs.add(terminateDrag);
+  listenForFocus() {
+    const focus = () => {
+      this.$xyAlert.setAttribute('role', 'alert'); // VoiceOver needs this.
+      this.$xyAlert.setAttribute('aria-live', 'polite');
     };
 
-    const xyNubMouseDown = event => {
-      const { clientX, clientY } = event;
-
-      const { bottom, left, right, top } =
-        this.$xyCanvas.getBoundingClientRect();
-
-      const offsetX = Math.min(Math.max(left, clientX), right) - left;
-      const offsetY = Math.min(Math.max(top, clientY), bottom) - top;
-
-      this.$xyCanvas.focus();
-
-      event.preventDefault();
-
-      xyMouseDown({ offsetX, offsetY });
+    const blur  = () => {
+      this.$xyAlert.removeAttribute('role');
+      this.$xyAlert.removeAttribute('aria-live');
     };
 
-    const zMouseDown = event => {
-      clearTimeout(zTimeout);
+    this.$xyCanvas.addEventListener('focus', focus);
+    this.$xyCanvas.addEventListener('blur', blur);
 
-      this.setZTentativelyFromEvent(event);
-      this._dragging = true;
-      this.$outer.classList.add('dragging', 'dragging-z');
-      this.$zNub.classList.add('initial-movement');
-      this.addGrab();
+    this._deregs
+      .add(() => this.$xyCanvas.removeEventListener('focus', focus))
+      .add(() => this.$xyCanvas.removeEventListener('blur', blur));
+  }
 
-      zTimeout = setTimeout(
-        () => this.$zNub.classList.remove('initial-movement'),
-        INITIAL_NUB_MOVEMENT_DURATION
-      );
+  listenForInput() {
+    // Text input change is the simplest event to handle, since we only need to
+    // let it trigger an update, as would occur if setting $host.value directly.
+    // The exceptional case is that we may need to translate an autocomplete
+    // selection to its hex value if it was typed but not expressly selected.
 
-      const terminateDrag = () => {
-        document.removeEventListener('blur', terminateDrag);
-        document.removeEventListener('mousemove', mousemove);
-        document.removeEventListener('mouseup', mouseup);
+    const change = () => {
+      let { value } = this.$input;
 
-        this.removeGrab();
+      const match = this.lang.colors.find(([ , name ]) => name === value);
 
-        this.$zCanvas.removeEventListener('blur', terminateDrag);
+      if (match) [ value ] = match;
 
-        this.$outer.classList.remove('dragging', 'dragging-z');
-        this._deregs.delete(terminateDrag);
-
-        this._dragging   = false;
-        this._renderXY   = true;
-        this._transientZ = undefined;
-
-        _terminateDrag = undefined;
-      };
-
-      const mousemove = ({ clientX, clientY }) => {
-        const { bottom, left, right, top } =
-          this.$zCanvas.getBoundingClientRect();
-
-        const offsetX = Math.min(Math.max(left, clientX), right) - left;
-        const offsetY = Math.min(Math.max(top, clientY), bottom) - top;
-
-        this.setZTentativelyFromEvent({ offsetX, offsetY });
-      };
-
-      const mouseup = ({ clientX, clientY }) => {
-        const { bottom, left, right, top } =
-          this.$zCanvas.getBoundingClientRect();
-
-        const graceZone =
-          Number.parseFloat(window.getComputedStyle(this.$container).padding);
-
-        const isSelection =
-          clientX + graceZone >= left &&
-          clientX - graceZone <= right &&
-          clientY + graceZone >= top &&
-          clientY - graceZone <= bottom;
-
-        if (isSelection) {
-          this.zAxisValue = this._transientZ;
-          this._renderXY  = true;
-          this.signalChange();
-        }
-
-        terminateDrag();
-      };
-
-      document.addEventListener('blur', terminateDrag);
-      document.addEventListener('mousemove', mousemove);
-      document.addEventListener('mouseup', mouseup);
-
-      this.$zCanvas.addEventListener('blur', terminateDrag);
-
-      _terminateDrag = terminateDrag;
-
-      this._deregs.add(terminateDrag);
+      this.$host.value = value;
     };
 
-    const zNubMouseDown = event => {
-      const { clientX, clientY } = event;
+    this.$input.addEventListener('change', change);
 
-      const { bottom, left, right, top } =
-        this.$zCanvas.getBoundingClientRect();
+    this._deregs
+      .add(() => this.$input.removeEventListener('change', change));
+  }
 
-      const offsetX = Math.min(Math.max(left, clientX), right) - left;
-      const offsetY = Math.min(Math.max(top, clientY), bottom) - top;
-
-      this.$zCanvas.focus();
-
-      event.preventDefault();
-
-      zMouseDown({ offsetX, offsetY });
-    };
+  listenForKeyboard() {
+    // We’re interested in keyboard control in three places: xy, z, and the
+    // outer container for both. The behavior for xy and z is not identical
+    // because z is always constrained in one or another direction depending on
+    // the layout, while xy is always able to move in any direction. The outer
+    // handler captures an escape key press; that should cancel any active
+    // dragging, restoring the user’s selection before the drag began.
 
     const outerKey = event => {
       if (event.defaultPrevented) return;
 
       if (this._dragging && event.key === 'Escape') {
-        if (_terminateDrag) _terminateDrag();
+        if (this._terminateDrag) this._terminateDrag();
         event.preventDefault();
       }
     };
@@ -518,26 +397,209 @@ class ColorInputInternal {
       event.preventDefault();
     };
 
-    const inputChange = () => this.$host.value = this.$input.value;
-
-    this.$input.addEventListener('change', inputChange);
-    this.$xyCanvas.addEventListener('mousedown', xyMouseDown);
     this.$xyCanvas.addEventListener('keydown', xyKey);
-    this.$xyNub.addEventListener('mousedown', xyNubMouseDown);
-    this.$zCanvas.addEventListener('mousedown', zMouseDown);
     this.$zCanvas.addEventListener('keydown', zKey);
-    this.$zNub.addEventListener('mousedown', zNubMouseDown);
     this.$outer.addEventListener('keydown', outerKey);
 
     this._deregs
-      .add(() => this.$input.removeEventListener('change', inputChange))
-      .add(() => this.$xyCanvas.removeEventListener('mousedown', xyMouseDown))
       .add(() => this.$xyCanvas.removeEventListener('keydown', xyKey))
-      .add(() => this.$xyNub.removeEventListener('mousedown', xyNubMouseDown))
-      .add(() => this.$zCanvas.removeEventListener('mousedown', zMouseDown))
       .add(() => this.$zCanvas.removeEventListener('keydown', zKey))
-      .add(() => this.$zNub.removeEventListener('mousedown', zNubMouseDown))
       .add(() => this.$outer.removeEventListener('keydown', outerKey));
+  }
+
+  listenForLanguage() {
+    const languageChange = () => {
+      this.lang = getLanguage();
+
+      const bare = new Intl.NumberFormat(navigator.languages, {
+        maximumFractionDigits: 1,
+        style: 'decimal'
+      });
+
+      const percent = new Intl.NumberFormat(navigator.languages, {
+        maximumFractionDigits: 1,
+        style: 'percent'
+      });
+
+      const degrees = new Intl.NumberFormat(navigator.languages, {
+        maximumFractionDigits: 0,
+        style: 'decimal'
+      });
+
+      this.barePercent = x => bare.format(x * 100);
+
+      this.percent = x => percent.format(x);
+
+      this.degrees = x => `${ degrees.format(x * 360) }°`;
+
+      while (this.$datalist.firstChild) {
+        this.$datalist.removeChild(this.$datalist.firstChild);
+      }
+
+      for (const [ value, label ] of this.lang.colors) {
+        this.$datalist.appendChild(
+          Object.assign(document.createElement('option'), { label, value })
+        );
+      }
+
+      this.updateLabels();
+    };
+
+    window.addEventListener('languagechange', languageChange);
+
+    this._deregs
+      .add(() => window.removeEventListener('languagechange', languageChange));
+
+    languageChange();
+  }
+
+  listenForMouseDownOnCanvas() {
+    // A bit of meta BS here to avoid duplicating a rather large chunk — the
+    // handling of the canvas mouse down events is indentical aside from the
+    // portion broken out into 'setQTentativelyFromEvent', but there are quite a
+    // few property pairs involved to reverse for each case.
+
+    for (const [ id, complementID ] of [ [ 'xy', 'z' ], [ 'z', 'xy' ] ]) {
+      let timeout;
+
+      const axisValuePairs = [ ...id ].map(axisChar => [
+        `${ axisChar }AxisValue`,
+        `_transient${ axisChar.toUpperCase() }`
+      ]);
+
+      const dragClass =
+        `dragging-${ id }`;
+
+      const renderKey =
+        `_render${ complementID.toUpperCase() }`;
+
+      const tentativeSetKey =
+        `set${ id.toUpperCase() }TentativelyFromEvent`;
+
+      const transientKeys = axisValuePairs
+        .map(([ , transientKey ]) => transientKey);
+
+      const {
+        [`$${ id }Canvas`]: $canvas,
+        [`$${ id }Nub`]: $nub,
+        $outer
+      } = this;
+
+      const mouseDown = this[`_${ id }MouseDown`] = event => {
+        clearTimeout(timeout);
+
+        this[tentativeSetKey](event);
+        this._dragging = true;
+        this.addGrab();
+
+        $outer.classList.add('dragging', dragClass);
+        $nub.classList.add('initial-movement');
+
+        timeout = setTimeout(
+          () => $nub.classList.remove('initial-movement'),
+          INITIAL_NUB_MOVEMENT_DURATION
+        );
+
+        const mouseMove = ({ clientX, clientY }) => {
+          const { bottom, left, right, top } = $canvas.getBoundingClientRect();
+
+          const offsetX = Math.min(Math.max(left, clientX), right) - left;
+          const offsetY = Math.min(Math.max(top, clientY), bottom) - top;
+
+          this[tentativeSetKey]({ offsetX, offsetY });
+        };
+
+        const mouseUp = ({ clientX, clientY }) => {
+          if (this.inGraceZone(clientX, clientY, $canvas)) {
+
+            for (const [ axisValueKey, transientKey ] of axisValuePairs) {
+              this[axisValueKey] = this[transientKey];
+            }
+
+            this[renderKey] = true;
+
+            this.signalChange();
+          }
+
+          this._terminateDrag();
+        };
+
+        const terminateDrag = this._terminateDrag = () => {
+          document.removeEventListener('blur', terminateDrag);
+          document.removeEventListener('mousemove', mouseMove);
+          document.removeEventListener('mouseup', mouseUp);
+
+          this.removeGrab();
+
+          $canvas.removeEventListener('blur', terminateDrag);
+
+          this.$outer.classList.remove('dragging', dragClass);
+
+          this._deregs.delete(terminateDrag);
+
+          this[renderKey]     = true;
+          this._dragging      = false;
+          this._terminateDrag = undefined;
+
+          for (const transientKey of transientKeys) {
+            this[transientKey] = undefined;
+          }
+        };
+
+        document.addEventListener('blur', terminateDrag);
+        document.addEventListener('mousemove', mouseMove);
+        document.addEventListener('mouseup', mouseUp);
+
+        $canvas.addEventListener('blur', terminateDrag);
+
+        this._deregs.add(terminateDrag);
+      };
+
+      $canvas.addEventListener('mousedown', mouseDown);
+
+      this._deregs
+        .add(() => $canvas.removeEventListener('mousedown', mouseDown));
+    }
+
+    this._deregs.add(() => this._xyMouseDown = this._zMouseDown = undefined);
+  }
+
+  listenForMouseDownOnNubs() {
+    // While the nubs themselves are not focusable elements, they require a
+    // distinct mouse input listener because they may extend over the edge of
+    // the canvases. The area of the nub outside the canvas should also be a
+    // target to begin dragging. We capture these events, clamp the offset
+    // values so that they fall within the canvas proper, and artifically call
+    // the handlers for the regular canvas mousedown events with the in-bounds
+    // values.
+
+    for (const id of [ 'xy', 'z' ]) {
+      const $canvas      = this[`$${ id }Canvas`];
+      const $nub         = this[`$${ id }Nub`];
+      const mouseDownKey = `_${ id }MouseDown`;
+
+      const mouseDown = event => {
+        const { clientX, clientY } = event;
+        const { bottom, left, right, top } = $canvas.getBoundingClientRect();
+
+        const offsetX = Math.min(Math.max(left, clientX), right) - left;
+        const offsetY = Math.min(Math.max(top, clientY), bottom) - top;
+
+        $canvas.focus();
+        event.preventDefault();
+        this[mouseDownKey]({ offsetX, offsetY });
+      };
+
+      $nub.addEventListener('mousedown', mouseDown);
+
+      this._deregs.add(() => $nub.removeEventListener('mousedown', mouseDown));
+    }
+  }
+
+  removeGrab() {
+    if (this._grabStyle) {
+      this._grabStyle.remove();
+    }
   }
 
   render() {
@@ -662,10 +724,7 @@ class ColorInputInternal {
     if (this.inputPosition === value) return;
 
     if (this.inputPosition === 'none') {
-      Object.assign(this.$input.style, {
-        position: '',
-        clip: ''
-      });
+      this.$inputRow.classList.remove('speech-only');
     }
 
     this.inputPosition = value;
@@ -675,13 +734,23 @@ class ColorInputInternal {
         this.$outer.style.flexDirection = 'column';
         return;
       case 'none':
-        Object.assign(this.$input.style, {
-          position: 'absolute',
-          clip: 'rect(1px, 1px, 1px, 1px)'
-        });
+        this.$inputRow.classList.add('speech-only');
         return;
       case 'top':
         this.$outer.style.flexDirection = 'column-reverse';
+    }
+  }
+
+  setLabelVisibilityFromCSS() {
+    const labelVisible = this.css.get(LABEL_VISIBILITY_PROP) === 'visible';
+
+    // Note that the visual label is distinct from the explicit aria labelling,
+    // and setting it to 'display: none' does not affect the access tree, as it
+    // is a less-verbose presentational alternative to begin with.
+
+    if (this.labelVisible !== labelVisible) {
+      this.labelVisible = labelVisible;
+      this.$label.style.display = labelVisible ? 'block' : 'none';
     }
   }
 
@@ -693,6 +762,12 @@ class ColorInputInternal {
 
       if (horizontal !== this.horizontal) {
         this.$zNub.classList[horizontal ? 'remove' : 'add']('vertical');
+
+        this.$zCanvas.setAttribute(
+          'aria-orientation',
+          horizontal ? 'vertical' : 'horizontal'
+        );
+
         this.horizontal = horizontal;
         this._renderZ   = true;
       }
@@ -809,7 +884,7 @@ class ColorInputInternal {
     }
   }
 
-  signalChange() {
+  signalChange(valueUnset=false) {
     if (this.noClamp) {
       const { mode, xAxisValue, yAxisValue, zAxisValue } = this;
       const arr = [];
@@ -825,8 +900,12 @@ class ColorInputInternal {
       }
     }
 
-    this.dirty = true;
+    this.updateValueLabels();
+
+    this.hasValue     = !valueUnset;
+    this.dirty        = true;
     this.$input.value = this.$host.value;
+
     this.$host.dispatchEvent(new CustomEvent('change'));
   }
 
@@ -839,18 +918,22 @@ class ColorInputInternal {
 
     this.css = new Map(styles);
 
-    const directionChanged     = changed.has(DIRECTION_PROP);
-    const gutterWidthChanged   = changed.has(GUTTER_WIDTH_PROP);
-    const highResChanged       = changed.has(HIGH_RES_PROP);
-    const inputPositionChanged = changed.has(INPUT_POSITION_PROP);
-    const orientationChanged   = changed.has(Z_POSITION_PROP);
-    const xDirectionChanged    = changed.has(X_DIRECTION_PROP);
-    const yDirectionChanged    = changed.has(Y_DIRECTION_PROP);
-    const zDirectionChanged    = changed.has(Z_DIRECTION_PROP);
-    const zWidthChanged        = changed.has(Z_WIDTH_PROP);
+    const directionChanged       = changed.has(DIRECTION_PROP);
+    const gutterWidthChanged     = changed.has(GUTTER_WIDTH_PROP);
+    const highResChanged         = changed.has(HIGH_RES_PROP);
+    const inputPositionChanged   = changed.has(INPUT_POSITION_PROP);
+    const labelVisibilityChanged = changed.has(LABEL_VISIBILITY_PROP);
+    const orientationChanged     = changed.has(Z_POSITION_PROP);
+    const xDirectionChanged      = changed.has(X_DIRECTION_PROP);
+    const yDirectionChanged      = changed.has(Y_DIRECTION_PROP);
+    const zDirectionChanged      = changed.has(Z_DIRECTION_PROP);
+    const zWidthChanged          = changed.has(Z_WIDTH_PROP);
 
     if (inputPositionChanged)
       this.setInputPositionFromCSS();
+
+    if (labelVisibilityChanged)
+      this.setLabelVisibilityFromCSS();
 
     if (orientationChanged || directionChanged)
       this.setOrientationFromCSS(orientationChanged, directionChanged);
@@ -900,12 +983,95 @@ class ColorInputInternal {
     }
   }
 
+  updateLabels() {
+    const hasAria = this.$host.hasAttribute('aria-label');
+
+    const label = hasAria
+      ? this.$host.getAttribute('aria-label')
+      : this.lang.prefix;
+
+    if (!hasAria && !this.$host.hasAttribute('tabindex')) {
+      this.$outer.setAttribute('aria-label', label);
+    } else {
+      this.$outer.removeAttribute('aria-label');
+    }
+
+    this.$desc.innerText = this.lang.instruction;
+    this.$label.innerText = label;
+    this.$input.setAttribute('aria-label', label);
+    this.$xyCanvas.setAttribute('aria-label', this.getLabelXY(label));
+    this.$zCanvas.setAttribute('aria-label', this.getLabelZ(label));
+
+    this.updateValueLabels();
+  }
+
   updateTabIndex() {
     if (this.$host.hasAttribute('tabindex')) {
       this.$outer.removeAttribute('tabindex');
     } else {
       this.$outer.setAttribute('tabindex', '0');
     }
+  }
+
+  updateValueLabels() {
+    this.$zCanvas
+      .setAttribute('aria-valuenow', this.barePercent(this.zAxisValue));
+
+    this.$zCanvas
+      .setAttribute('aria-valuetext', this.zAxisValueLanguage);
+
+    this.$xyAlert.innerText =
+      `${ this.xWord }: ` +
+      `${ this.xAxisValueLanguage }; ` +
+      `${ this.yWord }: ` +
+      `${ this.yAxisValueLanguage }`;
+  }
+}
+
+for (const [ index, axisChar ] of [ 'x', 'y', 'z' ].entries()) {
+  const transientKey = `_transient${ axisChar.toUpperCase() }`;
+  const valueKey = `${ axisChar }AxisValue`;
+
+  Object.defineProperties(ColorInputInternal.prototype, {
+    [`${ axisChar }AxisValueLanguage`]: {
+      get() {
+        if (this.mode.labels[index] === 'hue') {
+          return this.degrees(this[valueKey]);
+        }
+
+        return this.percent(this[valueKey]);
+      }
+    },
+
+    [`${ axisChar }Word`]: {
+      get() {
+        return this.lang[this.mode.labels[index]];
+      }
+    },
+
+    [`effective${ axisChar.toUpperCase() }`]: {
+      get() {
+        return this[transientKey] !== undefined
+          ? this[transientKey]
+          : this[valueKey];
+      }
+    }
+  });
+}
+
+for (const id of [ 'xy', 'z' ]) {
+  for (const dimension of [ 'height', 'width' ]) {
+
+    const canvasKey = `$${ id }Canvas`;
+    const key       = id + dimension[0].toUpperCase() + dimension.slice(1);
+
+    Object.defineProperty(ColorInputInternal.prototype, key, {
+      get() {
+        return this.highRes
+          ? this[canvasKey][dimension] / 2
+          : this[canvasKey][dimension];
+      }
+    });
   }
 }
 

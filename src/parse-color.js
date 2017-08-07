@@ -83,3 +83,4 @@ export const cssColorStringToRGB = str => {
 
 export const rgbToHexString = rgb =>
   `#${ rgb.map(rgbValueToHexComponent).join('') }`;
+window.rgbToHexString = x => rgbToHexString(Array.from(x));

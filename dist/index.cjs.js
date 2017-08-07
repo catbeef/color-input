@@ -130,6 +130,12 @@ const hcl = (b, i, xH, yC, zL, noClamp) => {
   }
 };
 
+window.hcl = (h, c, l) => {
+  const arr = new Uint8Array(3);
+  hcl(arr, 0, h, c, l, false);
+  return arr;
+};
+
 const hsl = (b, i, xH, s, l) => {
   const h2 = xH * MAX_HUE;
   const m2 = l + (l < HALF ? l : 1 - l) * s;
@@ -346,22 +352,51 @@ const rgbToRGB = (...rgb) => rgb.map(n => n / MAX_BYTE);
 // PERMUTATIONS ////////////////////////////////////////////////////////////////
 
 const pairs = [
-  [ 'hcl', hcl, rgbToHCL, 'hue', 'chroma', 'luminance' ],
-  [ 'hsl', hsl, rgbToHSL, 'hue', 'saturation', 'luminosity' ],
-  [ 'hsv', hsv, rgbToHSV, 'hue', 'saturation', 'value' ],
-  [ 'lab', lab, rgbToLAB, 'lightness', 'red to green', 'blue to yellow' ],
-  [ 'rgb', rgb, rgbToRGB, 'red', 'green', 'blue' ]
+  [
+    'hcl', hcl, rgbToHCL,
+    'hue', 'chroma', 'luminance',
+    [ 0, 360 ], [ 0, 134 ], [ 0, 134 ]
+  ],
+  [
+    'hsl', hsl, rgbToHSL,
+    'hue', 'saturation', 'luminosity',
+    [ 0, 360 ], [ 0, 100 ], [ 0, 100 ]
+  ],
+  [
+    'hsv', hsv, rgbToHSV,
+    'hue', 'saturation', 'value',
+    [ 0, 360 ], [ 0, 100 ], [ 0, 100 ]
+  ],
+  [
+    'lab', lab, rgbToLAB,
+    'lightness', 'red to green', 'blue to yellow',
+    [ 0, 100 ], [ -110, 110 ], [ -110, 110 ]
+  ],
+  [
+    'rgb', rgb, rgbToRGB,
+    'red', 'green', 'blue',
+    [ 0x00, 0xFF ], [ 0x00, 0xFF ], [ 0x00, 0xFF ]
+  ]
 ];
 
-var color = pairs.reduce((acc, [ name, write, fromRGB, lX, lY, lZ ]) => {
+var color = pairs.reduce((acc, data) => {
+  let [ name ] = data;
+  const [ , write, fromRGB, lX, lY, lZ, mmX, mmY, mmZ ] = data;
   const [ x, y, z ] = name;
 
-  acc[name] = { labels: [ lX, lY, lZ ], name, write, fromRGB };
+  acc[name] = {
+    name,
+    labels: [ lX, lY, lZ ],
+    minMax: [ mmX, mmY, mmZ ],
+    write,
+    fromRGB
+  };
 
   name = [ x, z, y ].join('');
   acc[name] = {
     name,
     labels: [ lX, lZ, lY ],
+    minMax: [ mmX, mmZ, mmY ],
     write: (b, i, X, Y, Z, n) => write(b, i, X, Z, Y, n),
     fromRGB: (r, g, b) => {
       const [ x, y, z ] = fromRGB(r, g, b);
@@ -373,6 +408,7 @@ var color = pairs.reduce((acc, [ name, write, fromRGB, lX, lY, lZ ]) => {
   acc[name] = {
     name,
     labels: [ lY, lX, lZ ],
+    minMax: [ mmY, mmX, mmZ ],
     write: (b, i, X, Y, Z, n) => write(b, i, Y, X, Z, n),
     fromRGB: (r, g, b) => {
       const [ x, y, z ] = fromRGB(r, g, b);
@@ -384,6 +420,7 @@ var color = pairs.reduce((acc, [ name, write, fromRGB, lX, lY, lZ ]) => {
   acc[name] = {
     name,
     labels: [ lY, lZ, lX ],
+    minMax: [ mmY, mmZ, mmX ],
     write: (b, i, X, Y, Z, n) => write(b, i, Z, X, Y, n),
     fromRGB: (r, g, b) => {
       const [ x, y, z ] = fromRGB(r, g, b);
@@ -395,6 +432,7 @@ var color = pairs.reduce((acc, [ name, write, fromRGB, lX, lY, lZ ]) => {
   acc[name] = {
     name,
     labels: [ lZ, lX, lY ],
+    minMax: [ mmZ, mmX, mmY ],
     write: (b, i, X, Y, Z, n) => write(b, i, Y, Z, X, n),
     fromRGB: (r, g, b) => {
       const [ x, y, z ] = fromRGB(r, g, b);
@@ -406,6 +444,7 @@ var color = pairs.reduce((acc, [ name, write, fromRGB, lX, lY, lZ ]) => {
   acc[name] = {
     name,
     labels: [ lZ, lY, lX ],
+    minMax: [ mmZ, mmY, mmX ],
     write: (b, i, X, Y, Z, n) => write(b, i, Z, Y, X, n),
     fromRGB: (r, g, b) => {
       const [ x, y, z ] = fromRGB(r, g, b);
@@ -421,6 +460,275 @@ var color = pairs.reduce((acc, [ name, write, fromRGB, lX, lY, lZ ]) => {
 
   return acc;
 }, {});
+
+var ar = {
+  // Axis Words
+
+  blue         : 'أزرق',
+  blueToYellow : 'الأزرق إلى الأصفر',
+  chroma       : 'صفاء',
+  green        : 'أخضر',
+  hue          : 'صبغة',
+  lightness    : 'إضاءة',
+  luminance    : 'إضاءة',
+  luminosity   : 'إضاءة',
+  red          : 'أحمر',
+  redToGreen   : 'الأحمر إلى الأخضر',
+  saturation   : 'إشباع',
+  value        : 'قيمة',
+
+  // Directions
+
+  instruction  : 'واثنين من المدخلات على أساس السهم وإدخال النص',
+  leftAndRight : 'يسار و يمين',
+  prefix       : 'إختر لون',
+  upAndDown    : 'صعودا وهبوطا',
+
+  // Color Words
+
+  colors: [
+  ]
+};
+
+var de = {
+  // Axis Words
+
+  blue         : 'Blau',
+  blueToYellow : 'Blau bis Gelb',
+  chroma       : 'Buntheit',
+  green        : 'Grün',
+  hue          : 'Farbton',
+  lightness    : 'Helligkeit',
+  luminance    : 'Leuchtdichte',
+  luminosity   : 'Helligkeit',
+  red          : 'Rot',
+  redToGreen   : 'Rot bis Grün',
+  saturation   : 'Farbsättigung',
+  value        : 'Hellwert',
+
+  // Directions
+
+  instruction  : 'Zwei Pfeiltasten-basierte Eingänge und eine Texteingabe',
+  leftAndRight : 'links und rechts',
+  prefix       : 'Wähle Farbe',
+  upAndDown    : 'oben und unten',
+
+  // Color Words
+
+  colors: [
+  ]
+};
+
+var enUS = {
+  // Axis Words
+
+  blue         : 'blue',
+  blueToYellow : 'blue to yellow',
+  chroma       : 'chroma',
+  green        : 'green',
+  hue          : 'hue',
+  lightness    : 'lightness',
+  luminance    : 'luminance',
+  luminosity   : 'luminosity',
+  red          : 'red',
+  redToGreen   : 'red to green',
+  saturation   : 'saturation',
+  value        : 'value',
+
+  // Directions
+
+  instruction  : 'two arrow-key based inputs and a text input',
+  leftAndRight : 'left and right',
+  prefix       : 'select color',
+  upAndDown    : 'up and down',
+
+  // Color Words
+
+  colors: [
+    [ '#000000', 'black' ],
+    [ '#FF0000', 'red' ]
+  ]
+};
+
+var enGB = Object.assign({}, enUS, {
+  prefix: 'select colour',
+  colors: enUS
+    .colors
+    .map(([ value, label ]) => [ value, label.replace(/\bgray\b/, 'grey') ])
+});
+
+var es = {
+  // Axis Words
+
+  blue         : 'azul',
+  blueToYellow : 'azul a amarillo',
+  chroma       : 'croma', // cromaticidad may be better, but both are used
+  green        : 'verde',
+  hue          : 'matiz',
+  lightness    : 'brillo',
+  luminance    : 'luminancia',
+  luminosity   : 'luminosidad',
+  red          : 'red',
+  redToGreen   : 'roja a verde',
+  saturation   : 'saturación',
+  value        : 'valor',
+
+  // Directions
+
+  instruction  : 'dos entradas de teclas de flecha y una entrada de texto',
+  leftAndRight : 'izquierda y derecha',
+  prefix       : 'seleccionar el color',
+  upAndDown    : 'arriba y abajo',
+
+  // Color Words
+
+  colors: [
+  ]
+};
+
+var fr = {
+  // Axis Words
+
+  blue         : 'bleu',
+  blueToYellow : 'bleu à jaune',
+  chroma       : 'chroma',
+  green        : 'vert',
+  hue          : 'teinte',
+  lightness    : 'clarté',
+  luminance    : 'lumière',
+  luminosity   : 'luminosité',
+  red          : 'rouge',
+  redToGreen   : 'rouge à vert',
+  saturation   : 'saturation',
+  value        : 'valeur',
+
+  // Directions
+
+  instruction  : 'deux entrées de touches fléchées et une entrée de texte',
+  leftAndRight : 'gauche et droite',
+  prefix       : 'choisissez la couleur',
+  upAndDown    : 'haut et bas',
+
+  // Color Words
+
+  colors: [
+  ]
+};
+
+var ja = {
+  // Axis Words
+
+  blue         : '青',
+  blueToYellow : '青から黄色へ',
+  chroma       : '彩度',
+  green        : '緑',
+  hue          : '色相',
+  lightness    : '輝度',
+  luminance    : '明度',
+  luminosity   : '輝度',
+  red          : '赤',
+  redToGreen   : '赤から緑',
+  saturation   : '飽和',
+  value        : '値',
+
+  // Directions
+
+  instruction  : '2つの矢印キー入力とテキスト入力',
+  leftAndRight : '左右',
+  prefix       : '色を選択',
+  upAndDown    : '上下',
+
+  // Color Words
+
+  colors: [
+  ]
+};
+
+var pt = {
+  // Axis Words
+
+  blue         : 'azul',
+  blueToYellow : 'azul para amarelo',
+  chroma       : 'croma',
+  green        : 'verde',
+  hue          : 'matiz',
+  lightness    : 'brilho',
+  luminance    : 'luminância',
+  luminosity   : 'brilho',
+  red          : 'vermelho',
+  redToGreen   : 'vermelho para verde',
+  saturation   : 'saturação',
+  value        : 'valor',
+
+  // Directions
+
+  instruction  : 'duas entradas de teclas de seta e uma entrada de texto',
+  leftAndRight : 'esquerda e direita',
+  prefix       : 'selecione a cor',
+  upAndDown    : 'para cima e para baixo',
+
+  // Color Words
+
+  colors: [
+  ]
+};
+
+var ru = {
+  // Axis Words
+
+  blue         : 'синий',
+  blueToYellow : 'от синего до желтого',
+  chroma       : 'цветность',
+  green        : 'зелёный',
+  hue          : 'тон',
+  lightness    : 'светлота',
+  luminance    : 'светлота',
+  luminosity   : 'светлота',
+  red          : 'красный',
+  redToGreen   : 'от красного до зеленого',
+  saturation   : 'насыщенный',
+  value        : 'яркость',
+
+  // Directions
+
+  instruction  : 'два входа со стрелочной клавишей и ввод текста',
+  leftAndRight : 'влево и вправо',
+  prefix       : 'выбрать цвет',
+  upAndDown    : 'вверх и вниз',
+
+  // Color Words
+
+  colors: []
+};
+
+var zh = {
+  // Axis Words
+
+  blue         : '蓝色',
+  blueToYellow : '蓝色至黄色',
+  chroma       : '色度',
+  green        : '绿色',
+  hue          : '色相',
+  lightness    : '亮度',
+  luminance    : '亮度',
+  luminosity   : '亮度',
+  red          : '红',
+  redToGreen   : '红色到绿色',
+  saturation   : '饱和度',
+  value        : '明度',
+
+  // Directions
+
+  instruction  : '两个基于箭头键的输入和一个文本输入',
+  leftAndRight : '左和右',
+  prefix       : '选择颜色',
+  upAndDown    : '上下',
+
+  // Color Words
+
+  colors: [
+  ]
+};
 
 const INVALID_KEYWORDS = new Set([
   '',
@@ -507,169 +815,90 @@ const cssColorStringToRGB = str => {
 
 const rgbToHexString = rgb =>
   `#${ rgb.map(rgbValueToHexComponent).join('') }`;
+window.rgbToHexString = x => rgbToHexString(Array.from(x));
 
-var CSS_COLORS = [
-  'aliceblue',
-  'antiquewhite',
-  'aqua',
-  'aquamarine',
-  'azure',
-  'beige',
-  'bisque',
-  'black',
-  'blanchedalmond',
-  'blue',
-  'blueviolet',
-  'brown',
-  'burlywood',
-  'cadetblue',
-  'chartreuse',
-  'chocolate',
-  'coral',
-  'cornflowerblue',
-  'cornsilk',
-  'crimson',
-  'cyan',
-  'darkblue',
-  'darkcyan',
-  'darkgoldenrod',
-  'darkgray',
-  'darkgreen',
-  'darkgrey',
-  'darkkhaki',
-  'darkmagenta',
-  'darkolivegreen',
-  'darkorange',
-  'darkorchid',
-  'darkred',
-  'darksalmon',
-  'darkseagreen',
-  'darkslateblue',
-  'darkslategray',
-  'darkslategrey',
-  'darkturquoise',
-  'darkviolet',
-  'deeppink',
-  'deepskyblue',
-  'dimgray',
-  'dimgrey',
-  'dodgerblue',
-  'firebrick',
-  'floralwhite',
-  'forestgreen',
-  'fuchsia',
-  'gainsboro',
-  'ghostwhite',
-  'gold',
-  'goldenrod',
-  'gray',
-  'green',
-  'greenyellow',
-  'grey',
-  'honeydew',
-  'hotpink',
-  'indianred',
-  'indigo',
-  'ivory',
-  'khaki',
-  'lavender',
-  'lavenderblush',
-  'lawngreen',
-  'lemonchiffon',
-  'lightblue',
-  'lightcoral',
-  'lightcyan',
-  'lightgoldenrodyellow',
-  'lightgray',
-  'lightgreen',
-  'lightgrey',
-  'lightpink',
-  'lightsalmon',
-  'lightseagreen',
-  'lightskyblue',
-  'lightslategray',
-  'lightslategrey',
-  'lightsteelblue',
-  'lightyellow',
-  'lime',
-  'limegreen',
-  'linen',
-  'magenta',
-  'maroon',
-  'mediumaquamarine',
-  'mediumblue',
-  'mediumorchid',
-  'mediumpurple',
-  'mediumseagreen',
-  'mediumslateblue',
-  'mediumspringgreen',
-  'mediumturquoise',
-  'mediumvioletred',
-  'midnightblue',
-  'mintcream',
-  'mistyrose',
-  'moccasin',
-  'navajowhite',
-  'navy',
-  'oldlace',
-  'olive',
-  'olivedrab',
-  'orange',
-  'orangered',
-  'orchid',
-  'palegoldenrod',
-  'palegreen',
-  'paleturquoise',
-  'palevioletred',
-  'papayawhip',
-  'peachpuff',
-  'peru',
-  'pink',
-  'plum',
-  'powderblue',
-  'purple',
-  'rebeccapurple',
-  'red',
-  'rosybrown',
-  'royalblue',
-  'saddlebrown',
-  'salmon',
-  'sandybrown',
-  'seagreen',
-  'seashell',
-  'sienna',
-  'silver',
-  'skyblue',
-  'slateblue',
-  'slategray',
-  'slategrey',
-  'snow',
-  'springgreen',
-  'steelblue',
-  'tan',
-  'teal',
-  'thistle',
-  'tomato',
-  'turquoise',
-  'violet',
-  'wheat',
-  'white',
-  'whitesmoke',
-  'yellow',
-  'yellowgreen'
+const STRING_KEYS = [
+  'blue', 'blueToYellow', 'chroma', 'green', 'hue', 'instruction',
+  'leftAndRight', 'lightness', 'luminance', 'luminosity', 'prefix', 'red',
+  'redToGreen', 'saturation', 'upAndDown', 'value'
 ];
 
-const CONTAINER_ID  = 'CI_CONTAINER';
-const GUTTER_ID     = 'CI_GUTTER';
-const OUTER_ID      = 'CI_OUTER';
-const TEXT_DATA_ID  = 'CI_TEXT_DATA';
-const TEXT_INPUT_ID = 'CI_TEXT_INPUT';
-const XY_CANVAS_ID  = 'CI_XY_CANVAS';
-const XY_ID         = 'CI_XY';
-const XY_NUB_ID     = 'CI_XY_NUB';
-const Z_CANVAS_ID   = 'CI_Z_CANVAS';
-const Z_ID          = 'CI_Z';
-const Z_NUB_ID      = 'CI_Z_NUB';
+const registry = new Map([
+  [ 'ar', ar ],
+  [ 'de', de ],
+  [ 'en-GB', enGB ],
+  [ 'en-US', enUS ],
+  [ 'es', es ],
+  [ 'fr', fr ],
+  [ 'ja', ja ],
+  [ 'pt', pt ],
+  [ 'ru', ru ],
+  [ 'zh', zh ]
+]);
+
+const registerLanguage = (name, definition) => {
+  [ name ] = Intl.getCanonicalLocales(name);
+
+  const parent = registry.get(name.slice(0, 2)) || enUS;
+
+  const entry = Object.assign({}, parent, definition);
+
+  for (const stringKey of STRING_KEYS) {
+    if (typeof entry[stringKey] !== 'string') {
+      throw new TypeError(
+        `Language definition property ${ stringKey } must have a string value`
+      );
+    }
+  }
+
+  if (!entry.colors || !entry.colors[Symbol.iterator]) {
+    throw new TypeError(`Language definition property colors must be an array`);
+  }
+
+  const colors = Array.from(entry.colors);
+
+  if (colors.some(pair => !Array.isArray(pair))) {
+    throw new TypeError(`Language colors must be string pairs`);
+  }
+
+  if (colors.some(([ value ]) => !cssColorStringToRGB(value))) {
+    throw new TypeError(`Language color values must be valid CSS`);
+  }
+
+  if (colors.some(([ , name ]) => typeof name !== 'string')) {
+    throw new TypeError(`Language color names must be non-empty strings`);
+  }
+
+  if (new Set(colors.map(([ , name ]) => name)).size !== colors.length) {
+    throw new TypeError(`Language color names must not be duplicated`);
+  }
+
+  entry.colors = colors.map(([ value, label ]) => [
+    cssColorStringToRGB(value),
+    label
+  ]);
+
+  registry.set(name, entry);
+};
+
+const getLanguage = () =>
+  registry.get(navigator.languages.find(id => registry.has(id)) || 'en-US');
+
+const CONTAINER_ID        = 'CI_CONTAINER';
+const DESC_ID             = 'CI_DESC';
+const GUTTER_ID           = 'CI_GUTTER';
+const OUTER_ID            = 'CI_OUTER';
+const TEXT_DATA_ID        = 'CI_TEXT_DATA';
+const TEXT_INPUT_ID       = 'CI_TEXT_INPUT';
+const TEXT_INPUT_LABEL_ID = 'CI_TEXT_INPUT_LABEL';
+const TEXT_INPUT_ROW_ID   = 'CI_TEXT_INPUT_ROW';
+const XY_CANVAS_ID        = 'CI_XY_CANVAS';
+const XY_ALERT_ID         = 'CI_XY_ALERT';
+const XY_ID               = 'CI_XY';
+const XY_NUB_ID           = 'CI_XY_NUB';
+const Z_CANVAS_ID         = 'CI_Z_CANVAS';
+const Z_ID                = 'CI_Z';
+const Z_NUB_ID            = 'CI_Z_NUB';
 
 const DEFAULT_GUTTER_WIDTH          = '20px';
 const DEFAULT_SLIDER_RADIUS         = '13px';
@@ -738,7 +967,7 @@ var template = Object.assign(document.createElement('template'), {
         display          : flex;
         flex-direction   : column;
         height           : 100%;
-        outline-offset   : -5px; /* will be truncated otherwise */
+        outline-offset   : -5px; ${ '' /* will be truncated otherwise */ }
         width            : 100%;
       }
 
@@ -881,7 +1110,12 @@ var template = Object.assign(document.createElement('template'), {
         ));
       }
 
-      #${ TEXT_INPUT_ID } {
+      #${ TEXT_INPUT_LABEL_ID } {
+        display: none;
+      }
+
+      #${ TEXT_INPUT_ROW_ID } {
+        display: flex;
         margin           : var(
           --color-input-slider-radius, ${ DEFAULT_SLIDER_RADIUS }
         );
@@ -889,7 +1123,9 @@ var template = Object.assign(document.createElement('template'), {
           var(--color-input-gutter-width, ${ DEFAULT_GUTTER_WIDTH }) -
           var(--color-input-slider-radius, ${ DEFAULT_SLIDER_RADIUS })
         );
-        speak-as         : spell-out no-punctuation; /* not yet supported? */
+      }
+
+      #${ TEXT_INPUT_ID } {
 
         /* Proxied vars where no default value works fine */
         border-color     : var(--color-input-field-border-color);
@@ -899,11 +1135,11 @@ var template = Object.assign(document.createElement('template'), {
         text-align       : var(--color-input-field-text-align);
         text-shadow      : var(--color-input-field-text-shadow);
 
-        /* Proxied vars that need a default or else they behave like unset... */
-        /* ...it seems a bit arbitrary, is this not some sort of bug?         */
-        /* As with outline above, we need to include the webkit defaults      */
-        /* explicitly, which is okay as a stopgap, but presents a problem in  */
-        /* the long term...                                                   */
+        ${ '' /*
+          Proxied vars that need a default or else they behave like unset... it
+          seems a bit arbitrary, is this not some sort of bug? As with outline
+          above, we need to include the webkit defaults explicitly, which is
+          okay as a stopgap, but presents a problem in the long term... */ }
 
         background       : var(--color-input-field-background, white);
         border-style     : var(--color-input-field-border-style, inset);
@@ -929,19 +1165,35 @@ var template = Object.assign(document.createElement('template'), {
         cursor           : -webkit-grabbing;
         cursor           : grabbing;
       }
+
+      .speech-only,
+      #${ TEXT_INPUT_ROW_ID }.speech-only {
+        clip-path: inset(100%);
+        clip: rect(1px, 1px, 1px, 1px);
+        display: inline-block;
+        height: 1px;
+        margin: 0;
+        overflow: hidden;
+        position: absolute;
+        white-space: nowrap;
+        width: 1px;
+      }
     </style>
 
     <datalist id="${ TEXT_DATA_ID }">
-      ${ CSS_COLORS.map(name => `<option value="${ name }">`) }
     </datalist>
 
     <div
+      aria-describedby="${ DESC_ID }"
       id="${ OUTER_ID }"
       tabindex="0">
 
       <div
-        aria-hidden="true"
-        id="${ CONTAINER_ID }">
+        class="speech-only"
+        id="${ DESC_ID }">
+      </div>
+
+      <div id="${ CONTAINER_ID }">
 
         <div id="${ XY_ID }">
           <canvas
@@ -951,12 +1203,18 @@ var template = Object.assign(document.createElement('template'), {
             width="0">
           </canvas>
           <div id="${ XY_NUB_ID }"></div>
+          <div
+            class="speech-only"
+            id="${ XY_ALERT_ID }">
+          </div>
         </div>
 
         <div id="${ GUTTER_ID }"></div>
 
         <div id="${ Z_ID }">
           <canvas
+            aria-orientation="vertical"
+            role="slider"
             height="0"
             id="${ Z_CANVAS_ID }"
             tabindex="0"
@@ -966,10 +1224,17 @@ var template = Object.assign(document.createElement('template'), {
         </div>
       </div>
 
-      <input
-        id="${ TEXT_INPUT_ID }"
-        list="${ TEXT_DATA_ID }"
-        type="text">
+      <div id="${ TEXT_INPUT_ROW_ID }">
+        <span
+          aria-hidden="true"
+          id="${ TEXT_INPUT_LABEL_ID }"
+          role="presentation">
+        </span>
+        <input
+          id="${ TEXT_INPUT_ID }"
+          list="${ TEXT_DATA_ID }"
+          type="text">
+      </div>
     </div>
   `
 });
@@ -978,32 +1243,35 @@ const ARROW_KEYS = new Set([
   'ArrowDown', 'ArrowLeft', 'ArrowRight', 'ArrowUp'
 ]);
 
-const DIRECTION_PROP      = 'direction';
-const GUTTER_WIDTH_PROP   = '--color-input-gutter-width';
-const HIGH_RES_PROP       = '--color-input-high-res';
-const INPUT_POSITION_PROP = '--color-input-field-position';
-const X_DIRECTION_PROP    = '--color-input-x-axis-direction';
-const Y_DIRECTION_PROP    = '--color-input-y-axis-direction';
-const Z_DIRECTION_PROP    = '--color-input-z-axis-direction';
-const Z_POSITION_PROP     = '--color-input-z-axis-position';
-const Z_WIDTH_PROP        = '--color-input-z-axis-width';
+const DIRECTION_PROP        = 'direction';
+const GUTTER_WIDTH_PROP     = '--color-input-gutter-width';
+const HIGH_RES_PROP         = '--color-input-high-res';
+const INPUT_POSITION_PROP   = '--color-input-field-position';
+const LABEL_VISIBILITY_PROP = '--color-input-label-visibility';
+const X_DIRECTION_PROP      = '--color-input-x-axis-direction';
+const Y_DIRECTION_PROP      = '--color-input-y-axis-direction';
+const Z_DIRECTION_PROP      = '--color-input-z-axis-direction';
+const Z_POSITION_PROP       = '--color-input-z-axis-position';
+const Z_WIDTH_PROP          = '--color-input-z-axis-width';
 
-const DEFAULT_AXIS_DIRECTION = 'ascending';
-const DEFAULT_DIRECTION      = 'ltr';
-const DEFAULT_INPUT_POSITION = 'bottom';
-const DEFAULT_RESOLUTION     = 'false';
-const DEFAULT_Z_POSITION     = 'end';
+const DEFAULT_AXIS_DIRECTION   = 'ascending';
+const DEFAULT_DIRECTION        = 'ltr';
+const DEFAULT_INPUT_POSITION   = 'bottom';
+const DEFAULT_LABEL_VISIBILITY = 'none';
+const DEFAULT_RESOLUTION       = 'false';
+const DEFAULT_Z_POSITION       = 'end';
 
 const CSS_PROPERTIES = [
-  [ DIRECTION_PROP,      DEFAULT_DIRECTION      ],
-  [ GUTTER_WIDTH_PROP,   DEFAULT_GUTTER_WIDTH   ],
-  [ HIGH_RES_PROP,       DEFAULT_RESOLUTION     ],
-  [ INPUT_POSITION_PROP, DEFAULT_INPUT_POSITION ],
-  [ X_DIRECTION_PROP,    DEFAULT_AXIS_DIRECTION ],
-  [ Y_DIRECTION_PROP,    DEFAULT_AXIS_DIRECTION ],
-  [ Z_DIRECTION_PROP,    DEFAULT_AXIS_DIRECTION ],
-  [ Z_POSITION_PROP,     DEFAULT_Z_POSITION     ],
-  [ Z_WIDTH_PROP,        DEFAULT_Z_AXIS_WIDTH   ]
+  [ DIRECTION_PROP,        DEFAULT_DIRECTION        ],
+  [ GUTTER_WIDTH_PROP,     DEFAULT_GUTTER_WIDTH     ],
+  [ HIGH_RES_PROP,         DEFAULT_RESOLUTION       ],
+  [ INPUT_POSITION_PROP,   DEFAULT_INPUT_POSITION   ],
+  [ LABEL_VISIBILITY_PROP, DEFAULT_LABEL_VISIBILITY ],
+  [ X_DIRECTION_PROP,      DEFAULT_AXIS_DIRECTION   ],
+  [ Y_DIRECTION_PROP,      DEFAULT_AXIS_DIRECTION   ],
+  [ Z_DIRECTION_PROP,      DEFAULT_AXIS_DIRECTION   ],
+  [ Z_POSITION_PROP,       DEFAULT_Z_POSITION       ],
+  [ Z_WIDTH_PROP,          DEFAULT_Z_AXIS_WIDTH     ]
 ];
 
 const LUMINANCE_OFFSET     = 4 / 7;
@@ -1033,10 +1301,15 @@ class ColorInputInternal {
 
     this.$host      = host;
     this.$container = tree.getElementById(CONTAINER_ID);
+    this.$datalist  = tree.getElementById(TEXT_DATA_ID);
+    this.$desc      = tree.getElementById(DESC_ID);
     this.$gutter    = tree.getElementById(GUTTER_ID);
     this.$input     = tree.getElementById(TEXT_INPUT_ID);
+    this.$inputRow  = tree.getElementById(TEXT_INPUT_ROW_ID);
+    this.$label     = tree.getElementById(TEXT_INPUT_LABEL_ID);
     this.$outer     = tree.getElementById(OUTER_ID);
     this.$xy        = tree.getElementById(XY_ID);
+    this.$xyAlert   = tree.getElementById(XY_ALERT_ID);
     this.$xyCanvas  = tree.getElementById(XY_CANVAS_ID);
     this.$xyNub     = tree.getElementById(XY_NUB_ID);
     this.$z         = tree.getElementById(Z_ID);
@@ -1057,9 +1330,13 @@ class ColorInputInternal {
     // sets that value. The _deregs array holds event listener dereg functions
     // that should be called on disconnection.
 
+    this.barePercent = undefined;
     this.colorAccess = new Map();
+    this.degrees     = undefined;
+    this.lang        = undefined;
     this.mode        = color.hlc;
     this.noClamp     = false;
+    this.percent     = undefined;
     this._deregs     = new Set();
     this._raf        = undefined;
     this._grabStyle  = undefined;
@@ -1104,6 +1381,7 @@ class ColorInputInternal {
     this.highResAuto   = window.devicePixelRatio > 1;
     this.horizontal    = true;
     this.inputPosition = DEFAULT_INPUT_POSITION;
+    this.labelVisible  = false;
     this.xDescending   = false;
     this.yDescending   = false;
     this.zDescending   = false;
@@ -1138,44 +1416,19 @@ class ColorInputInternal {
     // each RAF. The transient x y and z properties describe the current
     // “uncommitted” value, that is, during active dragging, before a mouseup.
 
-    this._dragging   = false;
-    this._renderXY   = true;
-    this._renderZ    = true;
-    this._transientX = undefined;
-    this._transientY = undefined;
-    this._transientZ = undefined;
+    this._dragging      = false;
+    this._renderXY      = true;
+    this._renderZ       = true;
+    this._terminateDrag = undefined;
+    this._transientX    = undefined;
+    this._transientY    = undefined;
+    this._transientZ    = undefined;
+    this._xyMouseDown   = undefined;
+    this._zMouseDown    = undefined;
 
     // BOOTSTRAPPING ///////////////////////////////////////////////////////////
 
     shadow.append(tree);
-  }
-
-  get effectiveX() {
-    return this._transientX !== undefined ? this._transientX : this.xAxisValue;
-  }
-
-  get effectiveY() {
-    return this._transientY !== undefined ? this._transientY : this.yAxisValue;
-  }
-
-  get effectiveZ() {
-    return this._transientZ !== undefined ? this._transientZ : this.zAxisValue;
-  }
-
-  get xyHeight() {
-    return this.highRes ? this.$xyCanvas.height / 2 : this.$xyCanvas.height;
-  }
-
-  get xyWidth() {
-    return this.highRes ? this.$xyCanvas.width / 2 : this.$xyCanvas.width;
-  }
-
-  get zHeight() {
-    return this.highRes ? this.$zCanvas.height / 2 : this.$zCanvas.height;
-  }
-
-  get zWidth() {
-    return this.highRes ? this.$zCanvas.width / 2 : this.$zCanvas.width;
   }
 
   addGrab() {
@@ -1188,15 +1441,15 @@ class ColorInputInternal {
     document.head.appendChild(this._grabStyle);
   }
 
-  removeGrab() {
-    if (this._grabStyle) {
-      this._grabStyle.remove();
-    }
-  }
-
   connect() {
     this._rafFn();
-    this.listen();
+    this.listenForFocus();
+    this.listenForInput();
+    this.listenForKeyboard();
+    this.listenForMouseDownOnCanvas();
+    this.listenForMouseDownOnNubs();
+    this.listenForLanguage();
+    this.updateLabels();
   }
 
   disconnect() {
@@ -1216,200 +1469,89 @@ class ColorInputInternal {
     return buffer;
   }
 
-  listen() {
-    let _terminateDrag, xyTimeout, zTimeout;
+  getGraceZone() {
+    return Number.parseFloat(window.getComputedStyle(this.$container).padding);
+  }
 
-    const xyMouseDown = event => {
-      clearTimeout(xyTimeout);
+  getLabelXY(prefix) {
+    return (
+      `${ prefix }: ` +
+      `${ this.xWord } (${ this.lang.leftAndRight }), ` +
+      `${ this.yWord } (${ this.lang.upAndDown })`
+    );
+  }
 
-      this.setXYTentativelyFromEvent(event);
-      this._dragging = true;
-      this.$outer.classList.add('dragging', 'dragging-xy');
-      this.$xyNub.classList.add('initial-movement');
-      this.addGrab();
+  getLabelZ(prefix) {
+    return `${ prefix }: ${ this.zWord }`;
+  }
 
-      xyTimeout = setTimeout(
-        () => this.$xyNub.classList.remove('initial-movement'),
-        INITIAL_NUB_MOVEMENT_DURATION
-      );
+  inGraceZone(clientX, clientY, $canvas) {
+    const { bottom, left, right, top } = $canvas.getBoundingClientRect();
 
-      const terminateDrag = () => {
-        document.removeEventListener('blur', terminateDrag);
-        document.removeEventListener('mousemove', mousemove);
-        document.removeEventListener('mouseup', mouseup);
+    const graceZone = this.getGraceZone();
 
-        this.removeGrab();
+    return (
+      clientX + graceZone >= left &&
+      clientX - graceZone <= right &&
+      clientY + graceZone >= top &&
+      clientY - graceZone <= bottom
+    );
+  }
 
-        this.$xyCanvas.removeEventListener('blur', terminateDrag);
-
-        this.$outer.classList.remove('dragging', 'dragging-xy');
-        this._deregs.delete(terminateDrag);
-
-        this._dragging   = false;
-        this._renderZ    = true;
-        this._transientX = undefined;
-        this._transientY = undefined;
-
-        _terminateDrag = undefined;
-      };
-
-      const mousemove = ({ clientX, clientY }) => {
-        const { bottom, left, right, top } =
-          this.$xyCanvas.getBoundingClientRect();
-
-        const offsetX = Math.min(Math.max(left, clientX), right) - left;
-        const offsetY = Math.min(Math.max(top, clientY), bottom) - top;
-
-        this.setXYTentativelyFromEvent({ offsetX, offsetY });
-      };
-
-      const mouseup = ({ clientX, clientY }) => {
-        const { bottom, left, right, top } =
-          this.$container.getBoundingClientRect();
-
-        const graceZone =
-          Number.parseFloat(window.getComputedStyle(this.$container).padding);
-
-        const isSelection =
-          clientX + graceZone >= left &&
-          clientX - graceZone <= right &&
-          clientY + graceZone >= top &&
-          clientY - graceZone <= bottom;
-
-        if (isSelection) {
-          this.xAxisValue = this._transientX;
-          this.yAxisValue = this._transientY;
-          this._renderZ   = true;
-          this.signalChange();
-        }
-
-        terminateDrag();
-      };
-
-      document.addEventListener('blur', terminateDrag);
-      document.addEventListener('mousemove', mousemove);
-      document.addEventListener('mouseup', mouseup);
-
-      this.$xyCanvas.addEventListener('blur', terminateDrag);
-
-      _terminateDrag = terminateDrag;
-
-      this._deregs.add(terminateDrag);
+  listenForFocus() {
+    const focus = () => {
+      this.$xyAlert.setAttribute('role', 'alert'); // VoiceOver needs this.
+      this.$xyAlert.setAttribute('aria-live', 'polite');
     };
 
-    const xyNubMouseDown = event => {
-      const { clientX, clientY } = event;
-
-      const { bottom, left, right, top } =
-        this.$xyCanvas.getBoundingClientRect();
-
-      const offsetX = Math.min(Math.max(left, clientX), right) - left;
-      const offsetY = Math.min(Math.max(top, clientY), bottom) - top;
-
-      this.$xyCanvas.focus();
-
-      event.preventDefault();
-
-      xyMouseDown({ offsetX, offsetY });
+    const blur  = () => {
+      this.$xyAlert.removeAttribute('role');
+      this.$xyAlert.removeAttribute('aria-live');
     };
 
-    const zMouseDown = event => {
-      clearTimeout(zTimeout);
+    this.$xyCanvas.addEventListener('focus', focus);
+    this.$xyCanvas.addEventListener('blur', blur);
 
-      this.setZTentativelyFromEvent(event);
-      this._dragging = true;
-      this.$outer.classList.add('dragging', 'dragging-z');
-      this.$zNub.classList.add('initial-movement');
-      this.addGrab();
+    this._deregs
+      .add(() => this.$xyCanvas.removeEventListener('focus', focus))
+      .add(() => this.$xyCanvas.removeEventListener('blur', blur));
+  }
 
-      zTimeout = setTimeout(
-        () => this.$zNub.classList.remove('initial-movement'),
-        INITIAL_NUB_MOVEMENT_DURATION
-      );
+  listenForInput() {
+    // Text input change is the simplest event to handle, since we only need to
+    // let it trigger an update, as would occur if setting $host.value directly.
+    // The exceptional case is that we may need to translate an autocomplete
+    // selection to its hex value if it was typed but not expressly selected.
 
-      const terminateDrag = () => {
-        document.removeEventListener('blur', terminateDrag);
-        document.removeEventListener('mousemove', mousemove);
-        document.removeEventListener('mouseup', mouseup);
+    const change = () => {
+      let { value } = this.$input;
 
-        this.removeGrab();
+      const match = this.lang.colors.find(([ , name ]) => name === value);
 
-        this.$zCanvas.removeEventListener('blur', terminateDrag);
+      if (match) [ value ] = match;
 
-        this.$outer.classList.remove('dragging', 'dragging-z');
-        this._deregs.delete(terminateDrag);
-
-        this._dragging   = false;
-        this._renderXY   = true;
-        this._transientZ = undefined;
-
-        _terminateDrag = undefined;
-      };
-
-      const mousemove = ({ clientX, clientY }) => {
-        const { bottom, left, right, top } =
-          this.$zCanvas.getBoundingClientRect();
-
-        const offsetX = Math.min(Math.max(left, clientX), right) - left;
-        const offsetY = Math.min(Math.max(top, clientY), bottom) - top;
-
-        this.setZTentativelyFromEvent({ offsetX, offsetY });
-      };
-
-      const mouseup = ({ clientX, clientY }) => {
-        const { bottom, left, right, top } =
-          this.$zCanvas.getBoundingClientRect();
-
-        const graceZone =
-          Number.parseFloat(window.getComputedStyle(this.$container).padding);
-
-        const isSelection =
-          clientX + graceZone >= left &&
-          clientX - graceZone <= right &&
-          clientY + graceZone >= top &&
-          clientY - graceZone <= bottom;
-
-        if (isSelection) {
-          this.zAxisValue = this._transientZ;
-          this._renderXY  = true;
-          this.signalChange();
-        }
-
-        terminateDrag();
-      };
-
-      document.addEventListener('blur', terminateDrag);
-      document.addEventListener('mousemove', mousemove);
-      document.addEventListener('mouseup', mouseup);
-
-      this.$zCanvas.addEventListener('blur', terminateDrag);
-
-      _terminateDrag = terminateDrag;
-
-      this._deregs.add(terminateDrag);
+      this.$host.value = value;
     };
 
-    const zNubMouseDown = event => {
-      const { clientX, clientY } = event;
+    this.$input.addEventListener('change', change);
 
-      const { bottom, left, right, top } =
-        this.$zCanvas.getBoundingClientRect();
+    this._deregs
+      .add(() => this.$input.removeEventListener('change', change));
+  }
 
-      const offsetX = Math.min(Math.max(left, clientX), right) - left;
-      const offsetY = Math.min(Math.max(top, clientY), bottom) - top;
-
-      this.$zCanvas.focus();
-
-      event.preventDefault();
-
-      zMouseDown({ offsetX, offsetY });
-    };
+  listenForKeyboard() {
+    // We’re interested in keyboard control in three places: xy, z, and the
+    // outer container for both. The behavior for xy and z is not identical
+    // because z is always constrained in one or another direction depending on
+    // the layout, while xy is always able to move in any direction. The outer
+    // handler captures an escape key press; that should cancel any active
+    // dragging, restoring the user’s selection before the drag began.
 
     const outerKey = event => {
       if (event.defaultPrevented) return;
 
       if (this._dragging && event.key === 'Escape') {
-        if (_terminateDrag) _terminateDrag();
+        if (this._terminateDrag) this._terminateDrag();
         event.preventDefault();
       }
     };
@@ -1482,26 +1624,209 @@ class ColorInputInternal {
       event.preventDefault();
     };
 
-    const inputChange = () => this.$host.value = this.$input.value;
-
-    this.$input.addEventListener('change', inputChange);
-    this.$xyCanvas.addEventListener('mousedown', xyMouseDown);
     this.$xyCanvas.addEventListener('keydown', xyKey);
-    this.$xyNub.addEventListener('mousedown', xyNubMouseDown);
-    this.$zCanvas.addEventListener('mousedown', zMouseDown);
     this.$zCanvas.addEventListener('keydown', zKey);
-    this.$zNub.addEventListener('mousedown', zNubMouseDown);
     this.$outer.addEventListener('keydown', outerKey);
 
     this._deregs
-      .add(() => this.$input.removeEventListener('change', inputChange))
-      .add(() => this.$xyCanvas.removeEventListener('mousedown', xyMouseDown))
       .add(() => this.$xyCanvas.removeEventListener('keydown', xyKey))
-      .add(() => this.$xyNub.removeEventListener('mousedown', xyNubMouseDown))
-      .add(() => this.$zCanvas.removeEventListener('mousedown', zMouseDown))
       .add(() => this.$zCanvas.removeEventListener('keydown', zKey))
-      .add(() => this.$zNub.removeEventListener('mousedown', zNubMouseDown))
       .add(() => this.$outer.removeEventListener('keydown', outerKey));
+  }
+
+  listenForLanguage() {
+    const languageChange = () => {
+      this.lang = getLanguage();
+
+      const bare = new Intl.NumberFormat(navigator.languages, {
+        maximumFractionDigits: 1,
+        style: 'decimal'
+      });
+
+      const percent = new Intl.NumberFormat(navigator.languages, {
+        maximumFractionDigits: 1,
+        style: 'percent'
+      });
+
+      const degrees = new Intl.NumberFormat(navigator.languages, {
+        maximumFractionDigits: 0,
+        style: 'decimal'
+      });
+
+      this.barePercent = x => bare.format(x * 100);
+
+      this.percent = x => percent.format(x);
+
+      this.degrees = x => `${ degrees.format(x * 360) }°`;
+
+      while (this.$datalist.firstChild) {
+        this.$datalist.removeChild(this.$datalist.firstChild);
+      }
+
+      for (const [ value, label ] of this.lang.colors) {
+        this.$datalist.appendChild(
+          Object.assign(document.createElement('option'), { label, value })
+        );
+      }
+
+      this.updateLabels();
+    };
+
+    window.addEventListener('languagechange', languageChange);
+
+    this._deregs
+      .add(() => window.removeEventListener('languagechange', languageChange));
+
+    languageChange();
+  }
+
+  listenForMouseDownOnCanvas() {
+    // A bit of meta BS here to avoid duplicating a rather large chunk — the
+    // handling of the canvas mouse down events is indentical aside from the
+    // portion broken out into 'setQTentativelyFromEvent', but there are quite a
+    // few property pairs involved to reverse for each case.
+
+    for (const [ id, complementID ] of [ [ 'xy', 'z' ], [ 'z', 'xy' ] ]) {
+      let timeout;
+
+      const axisValuePairs = [ ...id ].map(axisChar => [
+        `${ axisChar }AxisValue`,
+        `_transient${ axisChar.toUpperCase() }`
+      ]);
+
+      const dragClass =
+        `dragging-${ id }`;
+
+      const renderKey =
+        `_render${ complementID.toUpperCase() }`;
+
+      const tentativeSetKey =
+        `set${ id.toUpperCase() }TentativelyFromEvent`;
+
+      const transientKeys = axisValuePairs
+        .map(([ , transientKey ]) => transientKey);
+
+      const {
+        [`$${ id }Canvas`]: $canvas,
+        [`$${ id }Nub`]: $nub,
+        $outer
+      } = this;
+
+      const mouseDown = this[`_${ id }MouseDown`] = event => {
+        clearTimeout(timeout);
+
+        this[tentativeSetKey](event);
+        this._dragging = true;
+        this.addGrab();
+
+        $outer.classList.add('dragging', dragClass);
+        $nub.classList.add('initial-movement');
+
+        timeout = setTimeout(
+          () => $nub.classList.remove('initial-movement'),
+          INITIAL_NUB_MOVEMENT_DURATION
+        );
+
+        const mouseMove = ({ clientX, clientY }) => {
+          const { bottom, left, right, top } = $canvas.getBoundingClientRect();
+
+          const offsetX = Math.min(Math.max(left, clientX), right) - left;
+          const offsetY = Math.min(Math.max(top, clientY), bottom) - top;
+
+          this[tentativeSetKey]({ offsetX, offsetY });
+        };
+
+        const mouseUp = ({ clientX, clientY }) => {
+          if (this.inGraceZone(clientX, clientY, $canvas)) {
+
+            for (const [ axisValueKey, transientKey ] of axisValuePairs) {
+              this[axisValueKey] = this[transientKey];
+            }
+
+            this[renderKey] = true;
+
+            this.signalChange();
+          }
+
+          this._terminateDrag();
+        };
+
+        const terminateDrag = this._terminateDrag = () => {
+          document.removeEventListener('blur', terminateDrag);
+          document.removeEventListener('mousemove', mouseMove);
+          document.removeEventListener('mouseup', mouseUp);
+
+          this.removeGrab();
+
+          $canvas.removeEventListener('blur', terminateDrag);
+
+          this.$outer.classList.remove('dragging', dragClass);
+
+          this._deregs.delete(terminateDrag);
+
+          this[renderKey]     = true;
+          this._dragging      = false;
+          this._terminateDrag = undefined;
+
+          for (const transientKey of transientKeys) {
+            this[transientKey] = undefined;
+          }
+        };
+
+        document.addEventListener('blur', terminateDrag);
+        document.addEventListener('mousemove', mouseMove);
+        document.addEventListener('mouseup', mouseUp);
+
+        $canvas.addEventListener('blur', terminateDrag);
+
+        this._deregs.add(terminateDrag);
+      };
+
+      $canvas.addEventListener('mousedown', mouseDown);
+
+      this._deregs
+        .add(() => $canvas.removeEventListener('mousedown', mouseDown));
+    }
+
+    this._deregs.add(() => this._xyMouseDown = this._zMouseDown = undefined);
+  }
+
+  listenForMouseDownOnNubs() {
+    // While the nubs themselves are not focusable elements, they require a
+    // distinct mouse input listener because they may extend over the edge of
+    // the canvases. The area of the nub outside the canvas should also be a
+    // target to begin dragging. We capture these events, clamp the offset
+    // values so that they fall within the canvas proper, and artifically call
+    // the handlers for the regular canvas mousedown events with the in-bounds
+    // values.
+
+    for (const id of [ 'xy', 'z' ]) {
+      const $canvas      = this[`$${ id }Canvas`];
+      const $nub         = this[`$${ id }Nub`];
+      const mouseDownKey = `_${ id }MouseDown`;
+
+      const mouseDown = event => {
+        const { clientX, clientY } = event;
+        const { bottom, left, right, top } = $canvas.getBoundingClientRect();
+
+        const offsetX = Math.min(Math.max(left, clientX), right) - left;
+        const offsetY = Math.min(Math.max(top, clientY), bottom) - top;
+
+        $canvas.focus();
+        event.preventDefault();
+        this[mouseDownKey]({ offsetX, offsetY });
+      };
+
+      $nub.addEventListener('mousedown', mouseDown);
+
+      this._deregs.add(() => $nub.removeEventListener('mousedown', mouseDown));
+    }
+  }
+
+  removeGrab() {
+    if (this._grabStyle) {
+      this._grabStyle.remove();
+    }
   }
 
   render() {
@@ -1626,10 +1951,7 @@ class ColorInputInternal {
     if (this.inputPosition === value) return;
 
     if (this.inputPosition === 'none') {
-      Object.assign(this.$input.style, {
-        position: '',
-        clip: ''
-      });
+      this.$inputRow.classList.remove('speech-only');
     }
 
     this.inputPosition = value;
@@ -1639,13 +1961,23 @@ class ColorInputInternal {
         this.$outer.style.flexDirection = 'column';
         return;
       case 'none':
-        Object.assign(this.$input.style, {
-          position: 'absolute',
-          clip: 'rect(1px, 1px, 1px, 1px)'
-        });
+        this.$inputRow.classList.add('speech-only');
         return;
       case 'top':
         this.$outer.style.flexDirection = 'column-reverse';
+    }
+  }
+
+  setLabelVisibilityFromCSS() {
+    const labelVisible = this.css.get(LABEL_VISIBILITY_PROP) === 'visible';
+
+    // Note that the visual label is distinct from the explicit aria labelling,
+    // and setting it to 'display: none' does not affect the access tree, as it
+    // is a less-verbose presentational alternative to begin with.
+
+    if (this.labelVisible !== labelVisible) {
+      this.labelVisible = labelVisible;
+      this.$label.style.display = labelVisible ? 'block' : 'none';
     }
   }
 
@@ -1657,6 +1989,12 @@ class ColorInputInternal {
 
       if (horizontal !== this.horizontal) {
         this.$zNub.classList[horizontal ? 'remove' : 'add']('vertical');
+
+        this.$zCanvas.setAttribute(
+          'aria-orientation',
+          horizontal ? 'vertical' : 'horizontal'
+        );
+
         this.horizontal = horizontal;
         this._renderZ   = true;
       }
@@ -1773,7 +2111,7 @@ class ColorInputInternal {
     }
   }
 
-  signalChange() {
+  signalChange(valueUnset=false) {
     if (this.noClamp) {
       const { mode, xAxisValue, yAxisValue, zAxisValue } = this;
       const arr = [];
@@ -1789,8 +2127,12 @@ class ColorInputInternal {
       }
     }
 
-    this.dirty = true;
+    this.updateValueLabels();
+
+    this.hasValue     = !valueUnset;
+    this.dirty        = true;
     this.$input.value = this.$host.value;
+
     this.$host.dispatchEvent(new CustomEvent('change'));
   }
 
@@ -1803,18 +2145,22 @@ class ColorInputInternal {
 
     this.css = new Map(styles);
 
-    const directionChanged     = changed.has(DIRECTION_PROP);
-    const gutterWidthChanged   = changed.has(GUTTER_WIDTH_PROP);
-    const highResChanged       = changed.has(HIGH_RES_PROP);
-    const inputPositionChanged = changed.has(INPUT_POSITION_PROP);
-    const orientationChanged   = changed.has(Z_POSITION_PROP);
-    const xDirectionChanged    = changed.has(X_DIRECTION_PROP);
-    const yDirectionChanged    = changed.has(Y_DIRECTION_PROP);
-    const zDirectionChanged    = changed.has(Z_DIRECTION_PROP);
-    const zWidthChanged        = changed.has(Z_WIDTH_PROP);
+    const directionChanged       = changed.has(DIRECTION_PROP);
+    const gutterWidthChanged     = changed.has(GUTTER_WIDTH_PROP);
+    const highResChanged         = changed.has(HIGH_RES_PROP);
+    const inputPositionChanged   = changed.has(INPUT_POSITION_PROP);
+    const labelVisibilityChanged = changed.has(LABEL_VISIBILITY_PROP);
+    const orientationChanged     = changed.has(Z_POSITION_PROP);
+    const xDirectionChanged      = changed.has(X_DIRECTION_PROP);
+    const yDirectionChanged      = changed.has(Y_DIRECTION_PROP);
+    const zDirectionChanged      = changed.has(Z_DIRECTION_PROP);
+    const zWidthChanged          = changed.has(Z_WIDTH_PROP);
 
     if (inputPositionChanged)
       this.setInputPositionFromCSS();
+
+    if (labelVisibilityChanged)
+      this.setLabelVisibilityFromCSS();
 
     if (orientationChanged || directionChanged)
       this.setOrientationFromCSS(orientationChanged, directionChanged);
@@ -1864,6 +2210,28 @@ class ColorInputInternal {
     }
   }
 
+  updateLabels() {
+    const hasAria = this.$host.hasAttribute('aria-label');
+
+    const label = hasAria
+      ? this.$host.getAttribute('aria-label')
+      : this.lang.prefix;
+
+    if (!hasAria && !this.$host.hasAttribute('tabindex')) {
+      this.$outer.setAttribute('aria-label', label);
+    } else {
+      this.$outer.removeAttribute('aria-label');
+    }
+
+    this.$desc.innerText = this.lang.instruction;
+    this.$label.innerText = label;
+    this.$input.setAttribute('aria-label', label);
+    this.$xyCanvas.setAttribute('aria-label', this.getLabelXY(label));
+    this.$zCanvas.setAttribute('aria-label', this.getLabelZ(label));
+
+    this.updateValueLabels();
+  }
+
   updateTabIndex() {
     if (this.$host.hasAttribute('tabindex')) {
       this.$outer.removeAttribute('tabindex');
@@ -1871,12 +2239,72 @@ class ColorInputInternal {
       this.$outer.setAttribute('tabindex', '0');
     }
   }
+
+  updateValueLabels() {
+    this.$zCanvas
+      .setAttribute('aria-valuenow', this.barePercent(this.zAxisValue));
+
+    this.$zCanvas
+      .setAttribute('aria-valuetext', this.zAxisValueLanguage);
+
+    this.$xyAlert.innerText =
+      `${ this.xWord }: ` +
+      `${ this.xAxisValueLanguage }; ` +
+      `${ this.yWord }: ` +
+      `${ this.yAxisValueLanguage }`;
+  }
 }
 
-const PRIVATE = new WeakMap();
+for (const [ index, axisChar ] of [ 'x', 'y', 'z' ].entries()) {
+  const transientKey = `_transient${ axisChar.toUpperCase() }`;
+  const valueKey = `${ axisChar }AxisValue`;
 
-const colorAccess = (mode, [ xMin, xMax ], [ yMin, yMax ], [ zMin, zMax ]) => {
+  Object.defineProperties(ColorInputInternal.prototype, {
+    [`${ axisChar }AxisValueLanguage`]: {
+      get() {
+        if (this.mode.labels[index] === 'hue') {
+          return this.degrees(this[valueKey]);
+        }
+
+        return this.percent(this[valueKey]);
+      }
+    },
+
+    [`${ axisChar }Word`]: {
+      get() {
+        return this.lang[this.mode.labels[index]];
+      }
+    },
+
+    [`effective${ axisChar.toUpperCase() }`]: {
+      get() {
+        return this[transientKey] !== undefined
+          ? this[transientKey]
+          : this[valueKey];
+      }
+    }
+  });
+}
+
+for (const id of [ 'xy', 'z' ]) {
+  for (const dimension of [ 'height', 'width' ]) {
+
+    const canvasKey = `$${ id }Canvas`;
+    const key       = id + dimension[0].toUpperCase() + dimension.slice(1);
+
+    Object.defineProperty(ColorInputInternal.prototype, key, {
+      get() {
+        return this.highRes
+          ? this[canvasKey][dimension] / 2
+          : this[canvasKey][dimension];
+      }
+    });
+  }
+}
+
+var colorAccess = mode => {
   const [ x, y, z ] = mode.name;
+  const [ [ xMin, xMax ], [ yMin, yMax ], [ zMin, zMax ] ] = mode.minMax;
 
   const members = [ [ x, xMin, xMax ], [ y, yMin, yMax ], [ z, zMin, zMax ] ];
 
@@ -1924,6 +2352,8 @@ const colorAccess = (mode, [ xMin, xMax ], [ yMin, yMax ], [ zMin, zMax ]) => {
   };
 };
 
+const PRIVATE = new WeakMap();
+
 class ColorInputElement extends HTMLElement {
   constructor() {
     super();
@@ -1969,6 +2399,8 @@ class ColorInputElement extends HTMLElement {
 
     priv.mode = mode;
 
+    priv.updateLabels();
+
     priv.setSelectionFromRGB(rgb);
 
     if (this.mode !== (this.getAttribute('mode') || '').toLowerCase().trim()) {
@@ -1993,12 +2425,10 @@ class ColorInputElement extends HTMLElement {
 
     if (rgb) {
       priv.setSelectionFromRGB(rgb);
-      priv.hasValue = true;
+      priv.signalChange();
     } else {
-      priv.hasValue = false;
+      priv.signalChange(true);
     }
-
-    priv.signalChange();
   }
 
   get valueAsNumber() {
@@ -2040,6 +2470,9 @@ class ColorInputElement extends HTMLElement {
     current = current === 'true' || (current === 'false' ? false : current);
 
     switch (attrKey) {
+      case 'aria-label':
+        PRIVATE.get(this).updateLabels();
+        return;
       case 'clamp':
         this.clamp = current;
         return;
@@ -2069,21 +2502,25 @@ class ColorInputElement extends HTMLElement {
 Object.defineProperties(ColorInputElement, {
   observedAttributes: {
     value: Object.freeze([
+      'aria-label',
       'clamp',
       'mode',
       'name',
       'tabindex',
       'value'
     ])
+  },
+  registerLanguage: {
+    value: registerLanguage
   }
 });
 
 Object.defineProperties(ColorInputElement.prototype, {
-  hcl: colorAccess(color.hcl, [ 0, 360 ], [ 0, 134 ], [ 0, 100 ]),
-  hsl: colorAccess(color.hsl, [ 0, 360 ], [ 0, 100 ], [ 0, 100 ]),
-  hsv: colorAccess(color.hsv, [ 0, 360 ], [ 0, 100 ], [ 0, 100 ]),
-  lab: colorAccess(color.lab, [ 0, 100 ], [ -110, 110 ], [ -110, 110 ]),
-  rgb: colorAccess(color.rgb, [ 0x00, 0xFF ], [ 0x00, 0xFF ], [ 0x00, 0xFF ])
+  hcl: colorAccess(color.hcl),
+  hsl: colorAccess(color.hsl),
+  hsv: colorAccess(color.hsv),
+  lab: colorAccess(color.lab),
+  rgb: colorAccess(color.rgb)
 });
 
 Object.freeze(ColorInputElement);

@@ -1,16 +1,18 @@
-import CSS_COLORS from './css-colors';
-
-export const CONTAINER_ID  = 'CI_CONTAINER';
-export const GUTTER_ID     = 'CI_GUTTER';
-export const OUTER_ID      = 'CI_OUTER';
-export const TEXT_DATA_ID  = 'CI_TEXT_DATA';
-export const TEXT_INPUT_ID = 'CI_TEXT_INPUT';
-export const XY_CANVAS_ID  = 'CI_XY_CANVAS';
-export const XY_ID         = 'CI_XY';
-export const XY_NUB_ID     = 'CI_XY_NUB';
-export const Z_CANVAS_ID   = 'CI_Z_CANVAS';
-export const Z_ID          = 'CI_Z';
-export const Z_NUB_ID      = 'CI_Z_NUB';
+export const CONTAINER_ID        = 'CI_CONTAINER';
+export const DESC_ID             = 'CI_DESC';
+export const GUTTER_ID           = 'CI_GUTTER';
+export const OUTER_ID            = 'CI_OUTER';
+export const TEXT_DATA_ID        = 'CI_TEXT_DATA';
+export const TEXT_INPUT_ID       = 'CI_TEXT_INPUT';
+export const TEXT_INPUT_LABEL_ID = 'CI_TEXT_INPUT_LABEL';
+export const TEXT_INPUT_ROW_ID   = 'CI_TEXT_INPUT_ROW';
+export const XY_CANVAS_ID        = 'CI_XY_CANVAS';
+export const XY_ALERT_ID         = 'CI_XY_ALERT';
+export const XY_ID               = 'CI_XY';
+export const XY_NUB_ID           = 'CI_XY_NUB';
+export const Z_CANVAS_ID         = 'CI_Z_CANVAS';
+export const Z_ID                = 'CI_Z';
+export const Z_NUB_ID            = 'CI_Z_NUB';
 
 export const DEFAULT_GUTTER_WIDTH          = '20px';
 export const DEFAULT_SLIDER_RADIUS         = '13px';
@@ -79,7 +81,7 @@ export default Object.assign(document.createElement('template'), {
         display          : flex;
         flex-direction   : column;
         height           : 100%;
-        outline-offset   : -5px; /* will be truncated otherwise */
+        outline-offset   : -5px; ${ '' /* will be truncated otherwise */ }
         width            : 100%;
       }
 
@@ -222,7 +224,12 @@ export default Object.assign(document.createElement('template'), {
         ));
       }
 
-      #${ TEXT_INPUT_ID } {
+      #${ TEXT_INPUT_LABEL_ID } {
+        display: none;
+      }
+
+      #${ TEXT_INPUT_ROW_ID } {
+        display: flex;
         margin           : var(
           --color-input-slider-radius, ${ DEFAULT_SLIDER_RADIUS }
         );
@@ -230,7 +237,9 @@ export default Object.assign(document.createElement('template'), {
           var(--color-input-gutter-width, ${ DEFAULT_GUTTER_WIDTH }) -
           var(--color-input-slider-radius, ${ DEFAULT_SLIDER_RADIUS })
         );
-        speak-as         : spell-out no-punctuation; /* not yet supported? */
+      }
+
+      #${ TEXT_INPUT_ID } {
 
         /* Proxied vars where no default value works fine */
         border-color     : var(--color-input-field-border-color);
@@ -240,11 +249,11 @@ export default Object.assign(document.createElement('template'), {
         text-align       : var(--color-input-field-text-align);
         text-shadow      : var(--color-input-field-text-shadow);
 
-        /* Proxied vars that need a default or else they behave like unset... */
-        /* ...it seems a bit arbitrary, is this not some sort of bug?         */
-        /* As with outline above, we need to include the webkit defaults      */
-        /* explicitly, which is okay as a stopgap, but presents a problem in  */
-        /* the long term...                                                   */
+        ${ '' /*
+          Proxied vars that need a default or else they behave like unset... it
+          seems a bit arbitrary, is this not some sort of bug? As with outline
+          above, we need to include the webkit defaults explicitly, which is
+          okay as a stopgap, but presents a problem in the long term... */ }
 
         background       : var(--color-input-field-background, white);
         border-style     : var(--color-input-field-border-style, inset);
@@ -270,19 +279,35 @@ export default Object.assign(document.createElement('template'), {
         cursor           : -webkit-grabbing;
         cursor           : grabbing;
       }
+
+      .speech-only,
+      #${ TEXT_INPUT_ROW_ID }.speech-only {
+        clip-path: inset(100%);
+        clip: rect(1px, 1px, 1px, 1px);
+        display: inline-block;
+        height: 1px;
+        margin: 0;
+        overflow: hidden;
+        position: absolute;
+        white-space: nowrap;
+        width: 1px;
+      }
     </style>
 
     <datalist id="${ TEXT_DATA_ID }">
-      ${ CSS_COLORS.map(name => `<option value="${ name }">`) }
     </datalist>
 
     <div
+      aria-describedby="${ DESC_ID }"
       id="${ OUTER_ID }"
       tabindex="0">
 
       <div
-        aria-hidden="true"
-        id="${ CONTAINER_ID }">
+        class="speech-only"
+        id="${ DESC_ID }">
+      </div>
+
+      <div id="${ CONTAINER_ID }">
 
         <div id="${ XY_ID }">
           <canvas
@@ -292,12 +317,18 @@ export default Object.assign(document.createElement('template'), {
             width="0">
           </canvas>
           <div id="${ XY_NUB_ID }"></div>
+          <div
+            class="speech-only"
+            id="${ XY_ALERT_ID }">
+          </div>
         </div>
 
         <div id="${ GUTTER_ID }"></div>
 
         <div id="${ Z_ID }">
           <canvas
+            aria-orientation="vertical"
+            role="slider"
             height="0"
             id="${ Z_CANVAS_ID }"
             tabindex="0"
@@ -307,10 +338,17 @@ export default Object.assign(document.createElement('template'), {
         </div>
       </div>
 
-      <input
-        id="${ TEXT_INPUT_ID }"
-        list="${ TEXT_DATA_ID }"
-        type="text">
+      <div id="${ TEXT_INPUT_ROW_ID }">
+        <span
+          aria-hidden="true"
+          id="${ TEXT_INPUT_LABEL_ID }"
+          role="presentation">
+        </span>
+        <input
+          id="${ TEXT_INPUT_ID }"
+          list="${ TEXT_DATA_ID }"
+          type="text">
+      </div>
     </div>
   `
 });

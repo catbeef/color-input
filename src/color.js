@@ -126,6 +126,12 @@ const hcl = (b, i, xH, yC, zL, noClamp) => {
   }
 };
 
+window.hcl = (h, c, l) => {
+  const arr = new Uint8Array(3);
+  hcl(arr, 0, h, c, l, false);
+  return arr;
+};
+
 const hsl = (b, i, xH, s, l) => {
   const h2 = xH * MAX_HUE;
   const m2 = l + (l < HALF ? l : 1 - l) * s;
@@ -342,22 +348,51 @@ const rgbToRGB = (...rgb) => rgb.map(n => n / MAX_BYTE);
 // PERMUTATIONS ////////////////////////////////////////////////////////////////
 
 const pairs = [
-  [ 'hcl', hcl, rgbToHCL, 'hue', 'chroma', 'luminance' ],
-  [ 'hsl', hsl, rgbToHSL, 'hue', 'saturation', 'luminosity' ],
-  [ 'hsv', hsv, rgbToHSV, 'hue', 'saturation', 'value' ],
-  [ 'lab', lab, rgbToLAB, 'lightness', 'red to green', 'blue to yellow' ],
-  [ 'rgb', rgb, rgbToRGB, 'red', 'green', 'blue' ]
+  [
+    'hcl', hcl, rgbToHCL,
+    'hue', 'chroma', 'luminance',
+    [ 0, 360 ], [ 0, 134 ], [ 0, 134 ]
+  ],
+  [
+    'hsl', hsl, rgbToHSL,
+    'hue', 'saturation', 'luminosity',
+    [ 0, 360 ], [ 0, 100 ], [ 0, 100 ]
+  ],
+  [
+    'hsv', hsv, rgbToHSV,
+    'hue', 'saturation', 'value',
+    [ 0, 360 ], [ 0, 100 ], [ 0, 100 ]
+  ],
+  [
+    'lab', lab, rgbToLAB,
+    'lightness', 'red to green', 'blue to yellow',
+    [ 0, 100 ], [ -110, 110 ], [ -110, 110 ]
+  ],
+  [
+    'rgb', rgb, rgbToRGB,
+    'red', 'green', 'blue',
+    [ 0x00, 0xFF ], [ 0x00, 0xFF ], [ 0x00, 0xFF ]
+  ]
 ];
 
-export default pairs.reduce((acc, [ name, write, fromRGB, lX, lY, lZ ]) => {
+export default pairs.reduce((acc, data) => {
+  let [ name ] = data;
+  const [ , write, fromRGB, lX, lY, lZ, mmX, mmY, mmZ ] = data;
   const [ x, y, z ] = name;
 
-  acc[name] = { labels: [ lX, lY, lZ ], name, write, fromRGB };
+  acc[name] = {
+    name,
+    labels: [ lX, lY, lZ ],
+    minMax: [ mmX, mmY, mmZ ],
+    write,
+    fromRGB
+  };
 
   name = [ x, z, y ].join('');
   acc[name] = {
     name,
     labels: [ lX, lZ, lY ],
+    minMax: [ mmX, mmZ, mmY ],
     write: (b, i, X, Y, Z, n) => write(b, i, X, Z, Y, n),
     fromRGB: (r, g, b) => {
       const [ x, y, z ] = fromRGB(r, g, b);
@@ -369,6 +404,7 @@ export default pairs.reduce((acc, [ name, write, fromRGB, lX, lY, lZ ]) => {
   acc[name] = {
     name,
     labels: [ lY, lX, lZ ],
+    minMax: [ mmY, mmX, mmZ ],
     write: (b, i, X, Y, Z, n) => write(b, i, Y, X, Z, n),
     fromRGB: (r, g, b) => {
       const [ x, y, z ] = fromRGB(r, g, b);
@@ -380,6 +416,7 @@ export default pairs.reduce((acc, [ name, write, fromRGB, lX, lY, lZ ]) => {
   acc[name] = {
     name,
     labels: [ lY, lZ, lX ],
+    minMax: [ mmY, mmZ, mmX ],
     write: (b, i, X, Y, Z, n) => write(b, i, Z, X, Y, n),
     fromRGB: (r, g, b) => {
       const [ x, y, z ] = fromRGB(r, g, b);
@@ -391,6 +428,7 @@ export default pairs.reduce((acc, [ name, write, fromRGB, lX, lY, lZ ]) => {
   acc[name] = {
     name,
     labels: [ lZ, lX, lY ],
+    minMax: [ mmZ, mmX, mmY ],
     write: (b, i, X, Y, Z, n) => write(b, i, Y, Z, X, n),
     fromRGB: (r, g, b) => {
       const [ x, y, z ] = fromRGB(r, g, b);
@@ -402,6 +440,7 @@ export default pairs.reduce((acc, [ name, write, fromRGB, lX, lY, lZ ]) => {
   acc[name] = {
     name,
     labels: [ lZ, lY, lX ],
+    minMax: [ mmZ, mmY, mmX ],
     write: (b, i, X, Y, Z, n) => write(b, i, Z, Y, X, n),
     fromRGB: (r, g, b) => {
       const [ x, y, z ] = fromRGB(r, g, b);
