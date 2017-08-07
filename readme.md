@@ -10,7 +10,8 @@ notation.
 
 ![example in "hlc" mode](example-hlc.png)
 
-There is a [demo page](example.html) — but be aware this will currently only work in Chrome (and maybe Safari and Opera, not sure).
+There is a [demo page](https://catbeef.github.io/color-input/example.html) — but
+be aware this will currently only work in Chrome and Opera.
 
 <!-- MarkdownTOC autolink=true bracket=round depth=3 -->
 
